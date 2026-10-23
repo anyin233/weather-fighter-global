@@ -2152,7 +2152,10 @@
       const out = {
         city, now, fcst, official, cnFcst, calDaily,
         hourly: { time: times, temp: temps, precip: precs, humidity: humids, wind: winds, wcode: wcodes, cloud: clouds, uv: uvs,
-          cloudLow: cloudLows, cloudMid: cloudMids, cloudHigh: cloudHighs, vis: viss },
+          cloudLow: cloudLows, cloudMid: cloudMids, cloudHigh: cloudHighs, vis: viss,
+          // 逐时流水要按城市时区定位「现在」。漏掉这一格时 renderTape 只能按 UTC
+          // 解析当地墙钟串，纽约会整体偏 4 小时（显示成晚上 21 点的未来值）。
+          utcOffset: recent.utcOffset },
         daily, week, month, intraday, seven,
         omDaily, lastDay, todayIndex: ti, today,
         base: ti > 0 ? daily[ti - 1].c : (ti === 0 ? daily[0].o : null),
