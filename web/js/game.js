@@ -3729,7 +3729,8 @@
       '<div class="gg-card">' +
       '<h2 style="font-size:22px;letter-spacing:2px">🎮 Climate Create Bet</h2>' +
       '<p>标的：<b>WXI 复合天气指数</b> —— <b>' + cityName + '</b> 本地的对流能量 / 阵风 / 降水 / 露点，' +
-      '<b>外加同省城市平均出来的「大盘」</b>，再叠一层盘子扰动。<br>' +
+      '<b>外加' + ((app && app.S && app.S.cur && app.S.cur.intl) ? '附近城市' : '同省城市') +
+      '平均出来的「大盘」</b>，再叠一层盘子扰动。<br>' +
       '打雷下雨 = 拉升，天气转好 = 回落。你不知道这段是哪年哪月 —— 只能靠盘感。</p>' +
       cashRowHTML() +
       '<ul class="gg-rules">' +

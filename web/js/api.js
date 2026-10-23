@@ -1151,15 +1151,26 @@
      */
     async regionIndex(city, maxCities) {
       const N = maxCities || 8;
-      const all = (Cities.all || []).filter(c => c && c.lat != null && c.lon != null);
-      let list = all.filter(c => c.prov && c.prov === city.prov);
+      // 国际城市没有「同省」这个概念（prov 那一格放的是国家），所以直接取
+      // 全球城市目录里最近的 8 座 —— 对纽约来说就是波士顿 / 费城 / 华盛顿这一带，
+      // 「区域大盘」的语义在哪个国家都成立。
+      const pool = (city.intl ? (Cities.world || []) : (Cities.all || []));
+      const all = pool.filter(c => c && c.lat != null && c.lon != null);
+      let list = city.intl ? [] : all.filter(c => c.prov && c.prov === city.prov);
       // 直辖市（北京市/上海市/天津市/重庆市）在自己省里只有一两个"城市"，
       // 拿它做大盘就等于拿本地行情再做一遍 —— 那样的"大盘"既没意义，还会把快分量算两次。
       // 所以同省凑不够时，退化成**按真实距离取最近的几个城市**，这才是"这一带"的天气。
-      let scope = city.prov;
+      let scope = city.intl ? '附近' : city.prov;
       if (list.length < 4) {
-        const near = all.filter(c => c.id !== city.id)
-          .map(c => ({ c: c, d: Math.abs(c.lat - city.lat) + Math.abs(c.lon - city.lon) }))
+        const rad = Math.PI / 180;
+        const km = c => {
+          const dp = (c.lat - city.lat) * rad, dl = (c.lon - city.lon) * rad;
+          const a = Math.sin(dp / 2) * Math.sin(dp / 2) +
+            Math.cos(city.lat * rad) * Math.cos(c.lat * rad) * Math.sin(dl / 2) * Math.sin(dl / 2);
+          return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(a)));
+        };
+        const near = all.filter(c => c.id !== city.id && c.id !== 'w' + city.id)
+          .map(c => ({ c: c, d: km(c) }))
           .sort((a, b) => (a.d - b.d) || (String(a.c.id) < String(b.c.id) ? -1 : 1))
           .slice(0, N);
         list = [city].concat(near.map(x => x.c));

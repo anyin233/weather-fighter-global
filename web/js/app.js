@@ -1876,7 +1876,9 @@
   /* ═══════════ 全城市抽屉 ═══════════ */
   /* `withWorld` 默认 false：国际目录 5,657 座，初始化时就全画成 DOM 会拖慢首屏。
      点「＋ 全部城市」时才带上它 —— 那时才真的需要浏览，而搜索框任何时候都能搜到。 */
+  let drawerWithWorld = false;      // 打开过「全部城市」之后，后续重画保持国际目录
   function buildDrawer(withWorld) {
+    if (withWorld !== undefined) drawerWithWorld = !!withWorld;
     const body = $('#drawerBody');
     const groups = {};
     API.Cities.all.forEach(c => { (groups[c.prov || '其他'] = groups[c.prov || '其他'] || []).push(c); });
@@ -1900,7 +1902,7 @@
           if (e.target.classList.contains('star')) {
             e.stopPropagation();
             if (S.watch.indexOf(c.id) >= 0) removeWatch(c.id); else addWatch(c.id);
-            buildDrawer(withWorld);
+            buildDrawer();
             return;
           }
           selectCity(c.id); $('#cityDrawer').hidden = true;
@@ -1923,7 +1925,7 @@
       body.appendChild(g);
     });
 
-    if (withWorld && API.Cities.world && API.Cities.world.length) {
+    if (drawerWithWorld && API.Cities.world && API.Cities.world.length) {
       // 按大洲分组，洲内按人口从多到少（world-cities.json 已排序）
       const byCont = {};
       API.Cities.world.forEach(c => { (byCont[c.reg || 'OT'] = byCont[c.reg || 'OT'] || []).push(c); });
