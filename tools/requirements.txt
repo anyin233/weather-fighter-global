@@ -1,0 +1,4 @@
+# 只有 tools/build_world_cities.py 需要（生成的 world-cities.json 已提交，
+# 日常部署 / Actions 不需要装这两个包）。
+opencc-python-reimplemented>=0.1.7
+pypinyin>=0.51

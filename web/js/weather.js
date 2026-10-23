@@ -49,11 +49,23 @@
 
   /** 各种时间源（ISO / RFC822 / MeteoAlarm offset）-> 'YYYY-MM-DDTHH:mm' 本地串。
       解析不了就原样返回，总比显示 undefined 强。 */
-  function isoLocal(s) {
+  function isoLocal(s, tz) {
     const t = String(s || '');
     if (!t) return '';
     const d = new Date(t);
     if (isNaN(d)) return t;
+    // 国际预警按**当前城市**的时区显示：人在国内看纽约的预警，时间也不该是北京时。
+    if (tz) {
+      try {
+        const p = new Intl.DateTimeFormat('en-CA', {
+          timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        }).formatToParts(d);
+        const g = k => (p.find(x => x.type === k) || {}).value || '00';
+        return g('year') + '-' + g('month') + '-' + g('day') + 'T' +
+          (g('hour') === '24' ? '00' : g('hour')) + ':' + g('minute');
+      } catch (e) { /* 时区名不合法就退回浏览器本地 */ }
+    }
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
       'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
@@ -891,13 +903,13 @@
         const s = await jget('data/intl/alerts.json', 600000, 'intlalerts');
         (s.eu || []).forEach(w => out.push({
           title: '[' + w.ctry + '] ' + w.e + (w.area ? ' · ' + w.area : ''),
-          time: isoLocal(w.t), lat: null, lon: null,
+          time: isoLocal(w.t, city.tz), lat: null, lon: null,
           text: (w.x || '') + '\n来源：' + w.src + (w.web ? ' · ' + w.web : ''),
           src: w.src, web: w.web, intl: 1, sev: w.sev, lvl: w.lvl, ctry: w.ctry, nocoordOK: 1
         }));
         (s.gdacs || []).forEach(w => out.push({
           title: '[' + w.lvl + '] ' + w.title,
-          time: isoLocal(w.t), lat: w.lat, lon: w.lon,
+          time: isoLocal(w.t, city.tz), lat: w.lat, lon: w.lon,
           text: (w.x || '') + '\n来源：GDACS（联合国/欧盟全球灾害预警）',
           src: 'GDACS', web: w.web, intl: 1, lvl: w.lvl === 'Red' ? 3 : 2
         }));
@@ -936,13 +948,15 @@
         out.push({
           title: '[' + (local ? '本地' : '美国') + '] ' + p.event +
             (p.areaDesc ? ' · ' + String(p.areaDesc).split(';')[0] : ''),
-          time: isoLocal(p.onset || p.effective || p.sent),
+          time: isoLocal(p.onset || p.effective || p.sent, city.tz),
           lat: lat, lon: lon,
           text: (p.headline || '') + '\n' + (p.description || '').slice(0, 500) +
             (p.instruction ? '\n建议：' + p.instruction : '') +
             '\n来源：NWS（美国国家气象局）' + (p.senderName ? ' · ' + p.senderName : ''),
           src: 'NWS', web: p['@id'] || '', intl: 1, local: !!local,
-          sev: p.severity || '', ctry: '美国'
+          sev: p.severity || '', ctry: '美国',
+          // 颜色按 NWS 的 severity 走：Extreme 红、Severe 橙、Moderate 黄。
+          lvl: p.severity === 'Extreme' ? 3 : p.severity === 'Severe' ? 2 : 1
         });
       });
       return out;

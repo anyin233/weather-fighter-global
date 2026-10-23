@@ -1387,7 +1387,7 @@
     const m = String(t).match(/(暴雨|暴雪|台风|大风|沙尘暴|雷电|冰雹|大雾|霾|寒潮|高温|干旱|道路结冰|森林火险|海上|霜冻|低温|强对流|雷雨大风|风暴潮|海浪|海啸|重污染|臭氧)/);
     if (m) return m[1];
     // 英文预警：取事件主体（Tornado / Flood / High Wind …），别把整段 headline 塞进标签
-    const e = String(t).match(/\b(Tornado|Hurricane|Typhoon|Cyclone|Flood|Flash Flood|High Wind|Wind|Winter Storm|Blizzard|Ice Storm|Heat|Extreme Heat|Thunderstorm|Fire|Fog|Rain|Snow|Storm|Drought|Volcano|Tsunami|Coastal|Surf|Freeze|Frost)\b/i);
+    const e = String(t).match(/\b(Tornado|Hurricane|Typhoon|Cyclone|Flash Flood|Flood|High Wind|Winter Storm|Blizzard|Ice Storm|Extreme Heat|Thunderstorm|Drought|Volcano|Tsunami|Coastal|Surf|Gale|Gust|Wind|Heat|Fire|Fog|Rain|Snow|Storm|Freeze|Frost)\b/i);
     if (e) return e[1];
     return '预警';
   }

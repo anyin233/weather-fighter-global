@@ -42,19 +42,19 @@
   const KINDS = {
     radar: {
       title: '全球雷达回波',
-      note: '数据来源：RainViewer · 全球雷达拼图（过去 2 小时 + 未来 30 分钟临近预报）· 免 key'
+      note: '来源：RainViewer · 过去 2 小时 + 30 分钟临近预报'
     },
     sat: {
       title: '全球卫星云图',
-      note: '数据来源：NASA GIBS · VIIRS 真彩云图（逐日）· 极区/夜侧为空是正常的'
+      note: '来源：NASA GIBS · VIIRS 真彩（逐日）· 夜侧/极区为空是正常的'
     },
     precip: {
       title: '全球降水实况',
-      note: '数据来源：NASA GIBS · IMERG 卫星降水估算（逐日，实况；不是预报）'
+      note: '来源：NASA GIBS · IMERG 降水估算（逐日实况，不是预报）'
     },
     temp: {
       title: '全球海陆温度',
-      note: '数据来源：NASA GIBS · MODIS 地表温度（昼）+ GHRSST 海表温度（逐日）'
+      note: '来源：NASA GIBS · MODIS 地表温度 + GHRSST 海温（逐日）'
     }
   };
 
