@@ -1,0 +1,102 @@
+name: 天气战士 · 抓数据并部署
+
+# 为什么把"抓数据"和"部署"放在同一个工作流里：
+#   用 GITHUB_TOKEN 推送产生的 commit 不会触发其它 workflow 运行，
+#   所以"预抓 -> commit"和"push 触发 Pages 部署"拆成两个文件会失效。
+#   合并后，每次抓取完直接重新上传静态站并部署，数据始终是新的。
+#
+# 抓两路：
+#   1. 中国数据（保留）：tools/prefetch_official.py，中国天气网 + 中国气象局
+#   2. 国际预警 / 热带气旋：tools/fetch_intl_alerts.py
+#      —— MeteoAlarm 与 GDACS / NHC 没有 CORS 头，浏览器直连不了，
+#         只能在服务端抓成 web/data/intl/*.json。
+#      —— NWS 有 CORS，前端直接请求 api.weather.gov，不在这一步抓。
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 每 30 分钟跑一次（GitHub 的 cron 是 UTC；高峰期可能延迟几分钟）
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      skip_fetch:
+        description: 跳过抓取，只重新部署
+        type: boolean
+        default: false
+
+permissions:
+  contents: write      # 提交预抓数据
+  pages: write         # 部署 Pages
+  id-token: write      # deploy-pages 需要
+
+concurrency:
+  group: tjs-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 抓取中国天气网 / 中国气象局官方数据
+        if: ${{ github.event.inputs.skip_fetch != 'true' }}
+        run: python tools/prefetch_official.py --workers 8
+        continue-on-error: true      # 上游抽风不应阻断部署
+
+      - name: 抓取国际预警与热带气旋
+        if: ${{ github.event.inputs.skip_fetch != 'true' }}
+        run: python tools/fetch_intl_alerts.py
+        continue-on-error: true
+
+      - name: 提交数据变化
+        # 预抓数据只是附带动作，真正目的是重新部署，所以这一步不能失败。
+        continue-on-error: true
+        run: |
+          set -u
+          git config user.name  "tjs-bot"
+          git config user.email "tjs-bot@users.noreply.github.com"
+          git add -A web/data/official web/data/intl
+          if git diff --staged --quiet; then
+            echo "官方数据无变化"
+            exit 0
+          fi
+          git commit -m "chore(data): 预抓天气数据 $(date -u '+%Y-%m-%dT%H:%MZ')"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              echo "预抓数据已推送"
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            echo "第 $i 次推送失败（多半是另一个运行抢先推了），重试…"
+            sleep $((i * 3))
+          done
+          echo "::warning::预抓数据连续 5 次推送失败，跳过提交，部署继续（数据下次再说）"
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: 打包静态站
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: 部署
+        id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,1501 @@
+/* ═══════════════════════════════════════════════════════════════
+   天气战士  —  同花顺风格终端皮肤
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0e1015;
+  --bg2:#14171e;
+  --panel:#181c24;
+  --panel2:#1e222c;
+  --panel3:#232833;
+  --line:#252a34;
+  --line2:#333a48;
+  --txt:#c9cdd6;
+  --txt-hi:#e9edf4;
+  --dim:#7b8291;
+  --dim2:#575e6d;
+  --up:#ff4d4f;
+  --down:#00b578;
+  --flat:#00b578;
+  --accent:#f0b90b;
+  --accent2:#ffd666;
+  --blue:#3d8bfd;
+  --purple:#a970ff;
+  --mono:"DIN Alternate","Bahnschrift","Consolas","SF Mono",ui-monospace,monospace;
+  --r:3px;
+}
+body.us{ --up:#00b578; --down:#ff4d4f; }
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* ⚠ overflow-x:hidden 加在 **html** 上，不是只加在 body 上。
+   起因：安卓尺寸（390×844）下 documentElement.scrollWidth = 762、并且 scrollLeft 真能滑到 120，
+   也就是**整页能横向滑出 ~372px**（手指一横滑，整个界面就跑偏）。
+   有意思的是逐个量下来，body 的每个直接子元素都正好 390 宽、排除"可滚动容器内部"之后
+   没有任何元素的右边缘超界 —— 那 762 是 html 的 overflow 还是 visible 时，
+   把某个 overflow 容器内部内容算进文档滚动区的那类边界情况。
+   与其继续追它，不如在设计层面把话说明白：**这个站不允许横向滚动整页**，
+   所有需要横滑的东西（指数条、标签栏、盘口……）都在**自己的容器里**滚。
+   overflow-x:hidden 会让另一轴的 visible 变成 auto，所以竖向滚动照旧。 */
+html,body{height:100%;overflow-x:hidden}
+body{
+  background:var(--bg);color:var(--txt);
+  font:13px/1.4 "Microsoft YaHei UI","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  /* 每一行按位置对应一个 body 的直接子元素：顶栏 / 天气功能条 / 指数条 / 主体 / 状态条 / 免责。
+     往这一层加东西必须同时改这一行（以及下面两个媒体查询里的同名声明），
+     否则后面的子元素整体错位一格 —— 加预警滚动条时就踩过一次，见 docs/NOTES.md。 */
+  display:grid;grid-template-rows:46px 30px 34px minmax(0,1fr) 24px 22px;
+  height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;
+  user-select:none;
+}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#333a48;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#454e60}
+.dim{color:var(--dim)}
+.grow{flex:1;min-width:0;min-height:0}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--flat)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ───────────────── 顶栏 ───────────────── */
+.topbar{
+  display:flex;align-items:center;gap:14px;padding:0 12px;
+  background:linear-gradient(180deg,#1b202a,#161a22);
+  border-bottom:1px solid var(--line2);position:relative;z-index:60;
+}
+.brand{display:flex;align-items:center;gap:8px;flex:none}
+.brand-mark{
+  /* 品牌图：原来是一个写着「战」的金色渐变方块，现在换成用户给的那张图。
+     图片本身接近正方形，这里只管尺寸/圆角/描边，不再需要文字排版属性。 */
+  width:27px;height:27px;border-radius:6px;display:block;object-fit:cover;
+  box-shadow:0 0 12px rgba(240,185,11,.35),0 0 0 1px rgba(240,185,11,.45);
+}
+.brand-text{font-size:15px;font-weight:700;color:var(--txt-hi);letter-spacing:.5px;white-space:nowrap}
+.brand-text em{font-style:normal;font-size:11px;font-weight:400;color:var(--dim);margin-left:7px;letter-spacing:0}
+
+.search-wrap{position:relative;flex:1;max-width:430px}
+.search-wrap .search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px;opacity:.55;pointer-events:none}
+#search{
+  width:100%;height:29px;padding:0 10px 0 27px;border-radius:var(--r);
+  background:#0c0e13;border:1px solid var(--line2);color:var(--txt);font-size:12.5px;outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+#search:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(240,185,11,.13)}
+.search-results{
+  position:absolute;top:34px;left:0;right:0;max-height:340px;overflow-y:auto;
+  background:#1b1f28;border:1px solid var(--line2);border-radius:var(--r);
+  box-shadow:0 12px 34px rgba(0,0,0,.62);z-index:80;
+}
+.sr-item{padding:6px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;border-bottom:1px solid #20242e}
+.sr-item:last-child{border-bottom:0}
+.sr-item:hover,.sr-item.sel{background:#2a3040}
+.sr-item .sr-name{color:var(--txt-hi);font-weight:600}
+.sr-item .sr-prov{color:var(--dim);font-size:11.5px}
+.sr-item .sr-code{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--dim2)}
+.sr-empty{padding:10px;color:var(--dim);text-align:center}
+
+.topbar-ctrl{display:flex;align-items:center;gap:9px;flex:none;margin-left:auto}
+.ctrl{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--dim);white-space:nowrap}
+.ctrl select{
+  height:26px;background:#0c0e13;border:1px solid var(--line2);color:var(--txt);
+  border-radius:var(--r);font-size:11.5px;padding:0 4px;outline:none;cursor:pointer;
+}
+.ctrl select:hover{border-color:var(--line2);background:#12151c}
+.btn,.mini{
+  background:#232833;border:1px solid var(--line2);color:var(--txt);border-radius:var(--r);
+  cursor:pointer;transition:.13s;font-family:inherit;
+}
+.btn{height:26px;padding:0 9px;font-size:11.5px}
+.btn:hover,.mini:hover{background:#2e3543;border-color:#464f61;color:var(--txt-hi)}
+.btn:active,.mini:active{transform:translateY(1px)}
+.mini{height:19px;min-width:19px;padding:0 4px;font-size:11px;line-height:1}
+.clock{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;min-width:76px}
+#clock{font-family:var(--mono);font-size:14px;color:var(--accent2);letter-spacing:.5px}
+#clockDate{font-size:10px;color:var(--dim2);font-style:normal}
+
+/* ───────────────── 指数条 ───────────────── */
+.index-strip{
+  display:flex;align-items:center;gap:0;background:#141821;
+  border-bottom:1px solid var(--line);overflow:hidden;
+}
+.strip-title{
+  flex:none;padding:0 10px;font-size:11px;color:var(--dim2);letter-spacing:1px;
+  border-right:1px solid var(--line);height:100%;display:flex;align-items:center;
+}
+.strip-list{display:flex;overflow-x:auto;overflow-y:hidden;height:100%;scrollbar-width:none}
+.strip-list::-webkit-scrollbar{height:0}
+.strip-item{
+  flex:none;display:flex;align-items:center;gap:6px;padding:0 14px;height:100%;
+  border-right:1px solid var(--line);cursor:pointer;transition:background .13s;
+}
+.strip-item:hover{background:#1d2330}
+.strip-item.on{background:#232a38;box-shadow:inset 0 -2px 0 var(--accent)}
+.strip-item .si-name{font-size:11.5px;color:var(--dim)}
+.strip-item .si-val{font-family:var(--mono);font-size:13px;font-weight:600}
+.strip-item .si-chg{font-family:var(--mono);font-size:11px}
+.strip-item canvas{display:block;opacity:.9}
+/* 指数条跟着自选走，自选为空时给一句引导（以前这里是写死的五个城市，不会空） */
+.idx-empty{padding:0 12px;font-size:11.5px;color:var(--dim2);display:flex;align-items:center;white-space:nowrap}
+
+/* ───────────────── 三栏布局 ───────────────── */
+.layout{
+  display:grid;grid-template-columns:238px minmax(0,1fr) 240px;
+  gap:1px;background:var(--line);overflow:hidden;
+}
+.pane{background:var(--panel);display:flex;flex-direction:column;min-height:0;min-width:0}
+.pane-head{
+  flex:none;height:27px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 8px;font-size:11.5px;color:var(--dim);background:var(--bg2);
+  border-bottom:1px solid var(--line);border-top:1px solid var(--line);
+}
+.pane-head:first-child{border-top:0}
+.pane-head em{font-style:normal;font-size:10.5px;color:var(--dim2);margin-left:5px}
+.pane-head-tools{display:flex;gap:4px}
+.scroll{overflow-y:auto;overflow-x:hidden}
+
+/* ───────────────── 状态栏里的客户端下载（仅 GitHub Pages 上有文件时才显示） ───────────────── */
+.dl-box{display:flex;align-items:center;gap:7px;padding-left:10px;margin-left:2px;border-left:1px solid var(--line)}
+.dl{
+  color:var(--accent);text-decoration:none;font-size:10.5px;line-height:1;
+  padding:3px 7px;border:1px solid rgba(240,185,11,.35);border-radius:3px;white-space:nowrap;
+}
+.dl:hover{background:rgba(240,185,11,.14);border-color:var(--accent)}
+
+/* ───────────────── 行情列表 ───────────────── */
+/* 三列：城市名(含星) / 价格 / 涨跌幅。
+   ⚠ 收藏星**不占列** —— 它是名字那一行里的一个 flex 子项（见下面的 .sw-name-row）。
+   曾经让星单独占第 4 列，结果名字那列被挤窄，「香港特别行政区」这种长小字就放不下了
+   （使用者指出的）。现在列数回到 3，名字那一列拿回全部宽度。
+   竖屏另有安排：见文末 @media —— 那里把星"拿出来"放到中间空档。 */
+.stock-row{
+  display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;
+  padding:5px 8px;cursor:pointer;border-bottom:1px solid #1d212a;
+  position:relative;transition:background .12s;
+}
+/* 名字那一行 = 城市名 + 星。桌面端星就贴在名字右边（同一个 flex 行）。
+   ⚠ **城市名这一格必须是固定宽**，星才能每行都在同一个横坐标上。
+   星是跟着名字走的（flex 行里排在它后面），名字长短不同星就跟着跑 ——
+   实测把 2 字名和 4 字名混在一起，星的 left 从 38 一路飘到 63（**歪 25px**），
+   就是使用者说的"歪歪扭扭"。钉死这一格之后，星永远落在 名字格宽 + 间距 处。
+   ⚠ 宽度要按**目录里最长的名字**给足：352 座城市里名字长度分布是
+   2 字 297 个 / 3 字 32 / 4 字 19 / **6 字 2 / 7 字 2**，最长的两个是
+   `恩施土家族苗族`、`红河哈尼族彝族`（实测 87.5px）。所以给 **90px**（≈7 个汉字）——
+   给 72px 的话这两个名字会被省略号截掉（星还是齐的，但名字少了尾巴，那不算"对上"）。
+   注意这一格只框住**名字那一行**，小字在下一行、宽度一点没被挤掉。 */
+.stock-row .sw-name-row{display:flex;align-items:center;gap:5px;min-width:0}
+.stock-row .sw-name-row .sw-name{
+  width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* ── 超长名字：**只有选中那一行**横向滚动把名字看全（桌面端） ──
+   90px 的格子装不下区县全名（最长 15 个字，`双江拉祜族佤族布朗族傣族自治县`，
+   而收藏列表里是可能有区县的 —— 定位到区县后可以加星）。
+   两个关键点：
+   ① **动的是内层 `.sw-name-in`，外层格子宽度不变** —— 所以右边的星一点都不会跟着晃
+      （这正是前几轮反复修的那个毛病，不能再犯一次）；
+   ② 内层必须**常驻** `inline-block`：行内元素的 clientWidth/scrollWidth 恒为 0，
+      那样 JS 就量不出超了多少（markNameOverflow 依赖它）。
+   `--sw-over` 由 JS 写在这一格上（值 = 文字宽 − 格子宽），自定义属性会继承给内层。 */
+.stock-row .sw-name-row .sw-name > .sw-name-in{display:inline-block;white-space:nowrap}
+.stock-row.on .sw-name.ovf > .sw-name-in{
+  animation: swMarquee 7s ease-in-out infinite alternate;
+}
+/* 两头停一下再走，别像跑马灯那样一刻不停 */
+@keyframes swMarquee{
+  0%, 15%   { transform: translateX(0); }
+  85%, 100% { transform: translateX(calc(-1 * var(--sw-over, 0px))); }
+}
+/* ⚠ 这里**故意没有** `@media (prefers-reduced-motion: reduce){animation:none}`。
+   上一版加了，结果使用者那边"点了双江根本不滚" —— 因为 **Windows 关了"显示动画"
+   时 Chrome 就会把 prefers-reduced-motion 报成 reduce**（无头 Chrome 也是这个值，
+   所以探针当时必须先把这条规则删掉才验得到滚动，这个信号我没读懂）。
+   而在这 90px 的格子里，**滚动是唯一能看全 15 字名的方式**（tooltip 只在鼠标悬停时有），
+   关掉它就等于这个功能不存在。所以按使用者的要求去掉这道闸：
+   它只有**选中那一行**在动、7 秒一个来回、两端还各停 15%，不是闪烁。
+   手机上那一档仍然是 animation:none（那里名字格够宽，根本不超出）。 */
+.stock-row:hover{background:#212734}
+.stock-row.on{background:#2a3140}
+.stock-row.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent)}
+/* 长按拖动排序：被拿起来的那一行。
+   加个阴影和描边让它"离地"，别的行照旧 —— 松手就落回原位。
+   cursor 换 grabbing，鼠标用户也知道自己在拖东西。 */
+.stock-row.dragging{
+  background:var(--panel3);box-shadow:0 8px 20px rgba(0,0,0,.5);
+  outline:1px solid var(--accent);border-radius:var(--r);
+  cursor:grabbing;opacity:.96;
+}
+/* 自选列表本身：允许纵向滚动（touch-action:pan-y），但长按不许弹系统菜单、
+   不许选中文字 —— 否则手机上按住 350ms 先弹出来的是"拷贝/搜索"。 */
+#watchlist{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.stock-row .sw-name{color:var(--txt-hi);font-weight:600;font-size:12.5px;line-height:1.25}
+.stock-row .sw-sub{font-size:10px;color:var(--dim2);font-family:var(--mono);line-height:1.3}
+.stock-row .sw-price{font-family:var(--mono);font-size:13.5px;font-weight:600;text-align:right}
+.stock-row .sw-pct{
+  font-family:var(--mono);font-size:11.5px;font-weight:600;text-align:right;
+  min-width:58px;padding:1px 4px;border-radius:2px;color:#fff;
+}
+.sw-pct.p-up{background:var(--up)} .sw-pct.p-down{background:var(--down)} .sw-pct.p-flat{background:var(--flat)}
+/* 收藏星：**常显**。以前这里是 ＋ / ✕，而且只在 hover 才 opacity:1 ——
+   桌面端等于看不见（使用者反馈"太不明显"）。现在跟搜索结果行 `.sr-star`、
+   行情头 `.qh-star`、全部城市抽屉 `.dw-city .star` 统一成同一个符号：
+   **空心 ☆ = 没收藏，实心 ★ = 收藏了**。
+   落位方式：行是 `grid-template-columns:1fr auto auto`，星是第 4 个孩子 →
+   自动进第 4 列（隐式列）、跟着 `align-items:center` 垂直居中。
+   ⚠ 不要再改回 `position:absolute;right:3px;top:3px` —— 那是原来 hover 才显形时的写法，
+   常显之后正好压在右边的涨跌幅标签上。 */
+.stock-row .sw-star{
+  width:22px;text-align:center;font-size:13px;line-height:1;padding:2px 0;
+  color:var(--dim2);cursor:pointer;border-radius:3px;
+  transition:color .12s,background .12s;
+}
+.stock-row .sw-star.on{color:var(--accent)}
+.stock-row .sw-star:hover{background:#3a4152;color:var(--accent)}
+/* 搜索下拉里的自选星标：常显，比 ✕/＋ 更好点 */
+.sr-item .sr-star{margin-left:6px;color:var(--dim2);font-size:13px;cursor:pointer;padding:0 3px;border-radius:2px}
+.sr-item .sr-star.on{color:var(--accent)}
+.sr-item .sr-star:hover{background:#3a4152;color:var(--accent)}
+
+/* ───────────────── 行情头 ───────────────── */
+.quote-head{
+  /* 换行是为了让底部的预警滚动条能独占一整行（它 flex:1 0 100%） */
+  flex:none;display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;
+  padding:9px 14px 10px;background:var(--bg2);border-bottom:1px solid var(--line);
+}
+/* 主图正上方那条跑马灯。order 把它压到最后一行，不管它插在 DOM 的哪个位置。 */
+.quote-head > .ticker{flex:1 0 100%;order:9;margin:7px 0 0}
+.qh-left{flex:none}
+.qh-name{display:flex;align-items:baseline;gap:8px;margin-bottom:2px;flex-wrap:wrap}
+.qh-name h1{font-size:19px;font-weight:700;color:var(--txt-hi);letter-spacing:.5px}
+.qh-code{font-family:var(--mono);font-size:12px;color:var(--dim);background:#20242e;padding:1px 6px;border-radius:2px}
+/* 城市名旁边的自选星。故意做得比 h1 小一点、默认压暗，选中才亮成金色 ——
+   它是个「随时都能点」的常驻控件，不能跟城市名抢视线。 */
+.qh-star{
+  background:none;border:0;cursor:pointer;padding:0 1px;line-height:1;
+  font-size:15px;color:var(--dim2);transition:color .12s;
+}
+.qh-star:hover{color:var(--accent)}
+.qh-star.on{color:var(--accent)}
+.qh-tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:10px;padding:1px 5px;border-radius:2px;border:1px solid;line-height:1.5}
+.tag-warn{color:#ffb400;border-color:#7a5a00;background:rgba(255,180,0,.09)}
+.tag-info{color:var(--blue);border-color:#1e4a8a;background:rgba(61,139,253,.09)}
+.tag-src{color:#4fd1c5;border-color:#1c5e57;background:rgba(79,209,197,.09)}
+.tag-mute{color:var(--dim);border-color:var(--line2)}
+.qh-price{display:flex;align-items:baseline;gap:9px;margin-top:3px}
+.qh-last{font-family:var(--mono);font-size:40px;font-weight:700;line-height:1;letter-spacing:-1px}
+.qh-unit{font-size:14px;color:var(--dim);margin-left:-4px}
+.qh-chg,.qh-pct{font-family:var(--mono);font-size:17px;font-weight:600}
+/* 统计格按"同类"分组（气温一组、风一组、日月一组…）—— 用户反馈"同类型的数据放一起更好"。
+   每组自己是一个小栅格，所以①组内几格永远挨在一起、②换到窄屏每组各自重新分列也不会被拆散。
+   以前是 21 格摊在一个 auto-fit 栅格里，同类数据会被行尾切得到处都是。 */
+.qh-stats{
+  flex:1;display:flex;flex-direction:column;align-content:start;padding-top:2px;min-width:0;
+}
+/* 竖屏才出现的「展开/收起」。桌面上 .qh-stats 五组本来就排得下，不需要它。 */
+.qh-more{display:none}
+.qg{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:2px 10px;min-width:0}
+/* 组分隔线：只花 4px（1px 线 + 0 额外内边距），图表那边的空间基本不受影响 */
+.qg + .qg{margin-top:4px;border-top:1px solid #2a313d}
+/* 每格不再单独画下划线：一行就是一组，组间那条线已经说明了一切，
+   两套线叠在一起（虚线 + 分隔线）只会显乱。 */
+.qs{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:1.5px 0;min-width:0}
+/* 标签**不能**被省略号截掉 —— "风速" 被截成 "风..." 就是这一条造成的（用户报过）。
+   列宽的下限（108px）保证正常情况下两者都放得下；万一还是挤，宁可让数值那一侧收窄。 */
+.qs b{font-weight:400;color:var(--dim);white-space:nowrap;flex:0 0 auto;overflow:visible;text-overflow:clip}
+/* 数值必须整块不换行：否则 "17.6 m/s" 会在空格处折成两行，把整行统计格撑歪 */
+.qs span{font-family:var(--mono);font-weight:600;color:var(--txt-hi);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* ───────────────── 图表 ───────────────── */
+.tabbar{
+  flex:none;height:29px;display:flex;align-items:stretch;gap:1px;
+  background:var(--bg2);border-bottom:1px solid var(--line);padding:0 6px;overflow-x:auto;scrollbar-width:none;
+}
+.tabbar::-webkit-scrollbar{height:0}
+.tab{
+  background:none;border:0;color:var(--dim);font-size:12px;font-family:inherit;
+  padding:0 11px;cursor:pointer;position:relative;white-space:nowrap;transition:color .13s;
+}
+.tab:hover{color:var(--txt-hi)}
+.tab.active{color:var(--accent);font-weight:600}
+.tab.active::after{content:"";position:absolute;left:7px;right:7px;bottom:0;height:2px;background:var(--accent);border-radius:1px}
+/* 「叠到主图」开关：不参与页签互斥，所以自己一套样式；
+   打开时用虚底下划线区分于普通页签的实心下划线，置灰时不可点。 */
+.tab.ovtab{margin-left:auto;color:var(--dim2);font-size:11.5px}
+.tab.ovtab:hover{color:var(--txt-hi)}
+.tab.ovtab.active{color:var(--accent)}
+.tab.ovtab.active::after{left:7px;right:7px;height:0;border-bottom:2px dashed var(--accent);background:none;border-radius:0}
+.tab.ovtab.disabled{opacity:.38;cursor:not-allowed}
+.tab.ovtab.disabled:hover{color:var(--dim2)}
+.tabbar .tab-spacer{flex:1}
+.chart-hint{display:flex;align-items:center;font-size:10.5px;color:var(--dim2);padding-right:6px;white-space:nowrap;gap:10px}
+.tabbar .mini{align-self:center}
+.chart-box{flex:1;min-height:0;position:relative;background:var(--panel)}
+.chart-box.sub{flex:0 0 132px}
+.chart{position:absolute;inset:0;z-index:0}
+/* ↑ 那个 z-index:0 不是装饰，是**必须**的：ECharts 的信息框（tooltip）是自己往图表容器里
+   插的一个 div，内联样式写死了 `z-index:9999999`（见 vendor/echarts.min.js）。容器若
+   z-index 是 auto（默认）就不构成层叠上下文，这个 9999999 会跑到**根**层叠上下文里跟
+   抽屉 .drawer(z-index:200) 比大小 —— 于是"点图表弹出信息框、再去点上方功能模块"时
+   抽屉盖不住它，信息框一直浮在最上面（用户报的现象，手机端最容易撞上）。
+   给了 z-index:0 之后 9999999 被关在图表这一层里，抽屉/工具栏/弹窗一律压在它上面。
+   ⚠ 别再删这一行 —— 只靠 JS 的 Chart.hideTips() 不够：ECharts 的 hideTip 动作在某些
+     状态下会变成空操作（探针实测：同一个实例连派两次 hideTip，DOM 的 opacity 还是 1）。 */
+
+/* ───────────────── 盘口 ───────────────── */
+.orderbook{padding:3px 0;flex:none}
+.ob-row{
+  /* ⚠ 第一列 42px 装不下「10-11 最高」：实测这行字要 **56px**，42px 的结果是
+     「10-11」/「最高」被拆成两行。放宽到 58px 就一行放下了 ——
+     两个 1fr 各让出 8px，价格那一列照旧放得下（实测最宽的「29.3」也才 30px 上下）。 */
+  display:grid;grid-template-columns:58px 1fr 30px 1fr;align-items:center;gap:6px;
+  padding:3px 9px;font-size:12px;position:relative;cursor:default;
+}
+.ob-row:hover{background:#212734}
+.ob-label{color:var(--dim);font-size:11px;white-space:nowrap}
+.ob-price{font-family:var(--mono);font-size:13px;font-weight:600;text-align:right}
+.ob-val{font-family:var(--mono);font-size:11.5px;color:var(--dim);text-align:right}
+.ob-bar{height:3px;border-radius:2px;background:var(--line2);overflow:hidden}
+.ob-bar i{display:block;height:100%;border-radius:2px}
+.ob-mid{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 9px;margin:4px 0;background:#1c212b;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  font-size:11.5px;color:var(--dim);
+}
+.ob-mid b{font-family:var(--mono);font-size:14px}
+/* ⚠ 这三段（`现在 22.2℃` / `比昨天 +1.65%` / `5 天落差 17.0℃`）单行只比可用宽
+   多出 3~4px 就被折成了两行。它们本来就一句话一个意思，不该断 —— 定死不断行。
+   实测三段加起来 232px，而这一行可用 282px，放得下。 */
+.ob-mid>*{white-space:nowrap}
+.ob-src{font-size:10.5px;color:var(--dim);padding:2px 9px 4px;border-bottom:1px dashed var(--line)}
+
+/* ───────────────── 成交明细 ───────────────── */
+.tape-head{
+  display:grid;grid-template-columns:1fr 62px 46px;padding:3px 9px;font-size:10.5px;
+  color:var(--dim2);background:#141821;border-bottom:1px solid var(--line);flex:none;
+}
+.tape-head span:not(:first-child){text-align:right}
+.tape-row{
+  display:grid;grid-template-columns:1fr 62px 46px;padding:3px 9px;font-size:11.5px;
+  border-bottom:1px solid #1b1f27;
+}
+.tape-row:hover{background:#212734}
+.tape-row .t-time{font-family:var(--mono);color:var(--dim)}
+.tape-row .t-temp{font-family:var(--mono);font-weight:600;text-align:right}
+.tape-row .t-amt{font-family:var(--mono);color:var(--dim);text-align:right}
+
+/* ───────────────── 状态栏 ───────────────── */
+.statusbar{
+  display:flex;align-items:center;gap:14px;padding:0 12px;font-size:11px;
+  background:linear-gradient(180deg,#171b23,#131720);border-top:1px solid var(--line2);
+}
+#statusLeft{color:var(--txt)}
+#statusSrc,#statusNext{font-family:var(--mono);font-size:10.5px}
+
+/* ───────────────── 抽屉 / Toast ───────────────── */
+.drawer{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:200;display:flex;justify-content:center;align-items:center}
+[hidden]{display:none!important}
+.drawer-panel{
+  width:min(880px,92vw);height:min(640px,86vh);background:var(--panel);
+  border:1px solid var(--line2);border-radius:6px;display:flex;flex-direction:column;
+  box-shadow:0 24px 70px rgba(0,0,0,.7);
+  /* min-width:0 不能省：.drawer 是 flex 容器，面板是它的 flex 子项，
+     而 flex 子项的 min-width:auto 会按内容的最小宽度兜底 ——
+     手机上雷达图/台风信息板一撑，width:min(880px,92vw) 就被顶穿，
+     面板横向溢出屏幕，右边一截内容（比如"播放"和各项数值）全被裁掉。 */
+  min-width:0;
+}
+.drawer-head{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;
+  border-bottom:1px solid var(--line);background:var(--bg2);flex:none;border-radius:6px 6px 0 0;
+  min-width:0;
+}
+.drawer-head strong{color:var(--txt-hi);font-size:13.5px}
+#drawerFilter{
+  flex:1;height:27px;background:#0c0e13;border:1px solid var(--line2);border-radius:var(--r);
+  color:var(--txt);padding:0 9px;font-size:12px;outline:none;font-family:inherit;
+}
+#drawerFilter:focus{border-color:var(--accent)}
+.drawer-body{flex:1;overflow-y:auto;padding:8px 10px;min-width:0}
+.dw-prov{font-size:11.5px;color:var(--accent);margin:10px 0 5px;letter-spacing:1px;font-weight:600}
+.dw-prov:first-child{margin-top:0}
+/* 格子最小宽 176px：名字列因此有 ~90px，最长的名字（`恩施土家族苗族`、`红河哈尼族彝族`，
+   实测 84px）也放得下、不会被省略号截。148px 那档会被截掉 2 个。 */
+.dw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:4px}
+/* ⚠ 这里必须是**三列网格**，不能用 `display:flex;justify-content:space-between`。
+   原来是 flex + space-between：名字在左、代号在右、**星夹在中间**，左右两个间隙平分 ——
+   于是**名字越长，星越往右**。一屏几十个格子扫下来就是"歪七扭八"（使用者报的）。
+   改成网格后，星的 left 只等于「格子宽 − 代号宽 − 间距」——
+   代号恒为 3 位数字（`c.id.slice(-3)`）、格子宽度由 `.dw-grid` 的 auto-fill 统一决定，
+   所以**每个格子里星的相对位置完全一样**，跟名字几个字无关。
+   名字那一列用 minmax(0,1fr) 才收得动，长了就用省略号。 */
+.dw-city{
+  display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;
+  padding:4px 7px;background:#1d222c;border:1px solid var(--line);border-radius:2px;
+  cursor:pointer;font-size:12px;transition:.12s;
+}
+.dw-city > span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dw-city:hover{background:#2a3140;border-color:var(--line2)}
+.dw-city.on{border-color:var(--accent);color:var(--accent)}
+/* ⚠ 这一格**必须固定宽**。它在星的右边，宽度一变星就被挤得左右乱跑：
+   实测 9 位代码在比例字体下每个数字宽度不一样（`101010100` 全是窄的 1 → 40.2px，
+   `101090402` → 44.7px），于是星的 left 跟着差出 10px —— 一整屏看下来就是"歪七扭八"。
+   双保险：钉死宽度 + 强制等宽数字（tabular-nums，字体支持才生效，宽度是硬保证）。 */
+.dw-city i{
+  font-style:normal;font-family:var(--mono);font-size:10px;color:var(--dim2);
+  width:46px;text-align:right;font-variant-numeric:tabular-nums;
+}
+.dw-city .star{color:var(--dim2);font-size:12px;line-height:1;padding:0 1px}
+.dw-city .star.on{color:var(--accent)}
+.dw-city .star:hover{color:var(--accent)}
+
+.toast{
+  position:fixed;left:50%;bottom:60px;transform:translateX(-50%);
+  background:#2b3240;border:1px solid var(--line2);color:var(--txt-hi);
+  padding:8px 16px;border-radius:4px;font-size:12.5px;z-index:300;
+  box-shadow:0 8px 26px rgba(0,0,0,.55);animation:toastIn .18s ease-out;
+}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+.blink{animation:blink .5s ease-out}
+@keyframes blink{0%{background:rgba(240,185,11,.28)}100%{background:transparent}}
+.loading-mask{
+  position:absolute;inset:0;display:grid;place-items:center;background:rgba(14,16,21,.55);
+  z-index:20;font-size:12.5px;color:var(--dim);letter-spacing:1px;
+}
+
+/* ───────────────── 术语对照表 ───────────────── */
+.help-panel{max-width:620px}
+.help-body{padding:4px 18px 20px;line-height:1.65}
+.help-body h4{
+  margin:16px 0 7px;font-size:12px;font-weight:600;color:var(--accent);
+  letter-spacing:.5px;border-bottom:1px solid var(--line);padding-bottom:5px;
+}
+.help-body h4:first-child{margin-top:6px}
+.help-body dl{margin:0}
+.help-body dt{font-size:12.5px;font-weight:600;color:var(--txt-hi);margin-top:10px}
+/* 术语表的解释文字很长，末行常常只剩一两个字吊着 —— `pretty` 是专门治这个的：
+   它不改前面怎么排，只在收尾时避免把最后一个词（中文里是一两个字）甩到下一行。 */
+.help-body dd{margin:2px 0 0;font-size:12px;color:var(--txt);text-wrap:pretty}
+.help-body dd b{color:var(--txt-hi);font-weight:600}
+.help-foot{
+  margin:18px 0 0;padding:10px 12px;font-size:12.5px;color:var(--txt);
+  background:rgba(240,185,11,.08);border:1px solid rgba(240,185,11,.28);border-radius:var(--r);
+  text-wrap:pretty;
+}
+.help-foot b{color:var(--accent)}
+
+/* 右栏里的两块（盘口 / 逐时成交）。宽屏下 display:contents 让它们对布局完全透明，
+   保持原来的排布不变；手机竖屏时才变成可单独显示的一页。 */
+.rblock{display:contents}
+
+@media (max-width:860px){
+  .rblock{display:flex;flex-direction:column;min-height:0}
+  body[data-mtab="2"] #tapeBlock{display:none}
+  body[data-mtab="3"] #obBlock{display:none}
+  body[data-mtab="2"] #obBlock,
+  body[data-mtab="3"] #tapeBlock{flex:1 1 auto;min-height:0}
+}
+
+@media (max-width:1240px){
+  .layout{grid-template-columns:200px minmax(0,1fr) 210px}
+  .qh-last{font-size:34px}
+}
+@media (max-width:1000px){
+  .brand-text em{display:none}
+}
+
+/* ═══════════════ 手机竖屏 ═══════════════
+   宽屏是三栏并排，竖屏一次只放得下一栏。所以：
+     · 顶栏压缩成两行，指数条横向滚动；
+     · 三栏叠在同一个网格单元里，靠 body[data-mtab] 决定显示哪一栏；
+     · 底部加一条四标签导航（自选 / 行情 / 盘口 / 明细）。
+   data-mtab 由 js/app.js 的 setMTab() 维护。 */
+.mtabs{display:none}
+
+@media (max-width:860px){
+  body{
+    /* body 是 grid；不写 grid-template-columns 时隐式列是 auto，
+       会被最宽子项的 max-content 撑破视口（实测 429 > 390）。显式钉一列并禁横向滚动。 */
+    grid-template-columns:minmax(0,1fr);
+    /* body 是 grid，行数必须跟直接子元素一一对上，多一个少一个都会整体错位。
+       顺序：顶栏 / 天气条 / 指数条 / 主体 / 状态栏 / 免责声明 / 四页签。 */
+    /* 状态栏和免责声明必须是 auto 而不是写死 22px / 24px：
+       手机宽度下这两行里的文字放不下，写死高度就只能看着它被截掉
+       （用户报过「下方一加载信息、数据来源与免责文字也显示不完全」）。
+       给 auto 让它们自己长高，主体区用 minmax(0,1fr) 吸收剩余空间。 */
+    grid-template-rows:auto auto auto minmax(0,1fr) auto auto 54px;  /* 顶栏 / 天气条 / 指数条 / 主体 / 状态栏 / 免责声明 / 四页签 */
+    overflow-x:hidden;
+    font-size:13px;
+    -webkit-text-size-adjust:100%;
+  }
+
+  /* ── 顶栏：折成两行，去掉控件的文字标签 ── */
+  .topbar{flex-wrap:wrap;height:auto;padding:6px 8px;gap:6px;row-gap:6px}
+  .brand{flex:none}
+  .brand-mark{width:24px;height:24px}
+  .brand-text{font-size:13px}
+  .brand-text em{display:none}
+  .search-wrap{order:3;flex:1 1 100%;min-width:0}
+  .search-wrap input{height:30px;font-size:13px}
+  /* 控件簇基线是 flex:none（不收缩），在窄屏会顶出 421px 把整个页面撑宽。
+     必须让它自己占满一行再换行，否则 body 的 scrollWidth 会超过视口。 */
+  /* flex-wrap 不能省：390px 宽时这一排控件（3 个下拉框 + ？术语 + ⟳刷新 + 时钟）
+     的最小宽度是 400px，不换行就会整体溢出屏幕，把最右边的时钟挤出可视区。
+     下面那行 row-gap 只有配了 wrap 才有意义。 */
+  .topbar-ctrl{flex:1 1 100%;flex-wrap:wrap;margin-left:0;justify-content:space-between;gap:6px;row-gap:6px}
+  .topbar-ctrl .ctrl>span{display:none}          /* 只留下拉框，藏掉"行情刷新"这类标签 */
+  /* ⚠ 这里**不能**给 select 设 max-width 把文字夹住。
+     下拉框显示的是选中项的完整文字（例如「红＝升温（国内习惯）」，约 139px），
+     以前限成 96px，选中项就被从中间切断，看起来像"选框文字显示不全"
+     （用户报的正是这个）。让它们按内容取宽，这一排本来就是 flex-wrap:wrap，
+     放不下会自己换到下一行，不会顶穿视口。 */
+  .topbar-ctrl select{height:26px;font-size:11.5px;padding:0 4px;max-width:none;min-width:0;flex:0 1 auto}
+  .clock{flex-direction:row;align-items:baseline;min-width:0;gap:5px;line-height:1}
+  #clock{font-size:11.5px;letter-spacing:-.2px}
+  #clockDate{display:none}
+
+  /* ── 指数条：横向滚动，别换行挤成两排 ── */
+  .index-strip{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  #indexList{flex-wrap:nowrap;min-width:max-content}
+  .idx{padding:2px 8px}
+  .idx canvas{width:44px;height:16px}
+
+  /* ── 三栏改成"同一格里的四页" ── */
+  .layout{grid-template-columns:minmax(0,1fr);display:grid}
+  .pane-left,.pane-center,.pane-right{grid-area:1/1;display:none;min-height:0}
+  body[data-mtab="0"] .pane-left{display:flex}
+  body[data-mtab="1"] .pane-center{display:flex}
+  body[data-mtab="2"] .pane-right,
+  body[data-mtab="3"] .pane-right{display:flex}
+  /* 右栏装的是盘口+明细两块，按标签只留一块（规则见上面的 .rblock 段） */
+
+  /* ── 手机端：把星从名字行里"拿出来"，放到城市名与价格之间那片空档、跨两行垂直居中 ──
+     桌面端星贴在名字右边（见 .sw-name-row 那段）；手机上横向宽松、名字与价格之间空一大片，
+     放那儿更好点（也是使用者点名要的位置）。
+     做法：两层包装 `display:contents` 之后，星和名字/小字都成了**行的网格项**，
+     于是能单独用 grid-column / grid-row 摆位 —— 不需要两个星、也不需要绝对定位。
+
+     ⚠ **星的横坐标要钉死，右边那两格就必须是固定宽**：
+     星在第 2 格，它的 left = 行宽 − (价格 + 涨跌幅 + 各间距)。价格/涨跌幅原来是按文字
+     自适应的（`18.1` 与 `--` 不一样宽、涨跌幅只有 min-width），于是每行星的 left 都在飘 ——
+     实测 355…363（**歪 9px**）。把这两格钉死、名字格改成可收缩的 `minmax(0,1fr)`，
+     星的 left 就只由固定量决定，跟城市名长短、小字长短全都无关。
+     名字/小字加省略号兜底，免得长文本把名字格撑开又把星顶歪（手机上宽度够，正常不会截）。
+     ⚠ `display:contents` 只在这里用：桌面端一旦拆散，星就没法跟着名字同一行了。 */
+  .stock-row{grid-template-columns:minmax(0,1fr) auto auto auto;grid-template-rows:auto auto;gap:6px}
+  .stock-row > div:first-child{display:contents}
+  .stock-row .sw-name-row{display:contents}
+  .stock-row .sw-name-row .sw-name{width:auto;grid-column:1;grid-row:1}
+  .stock-row .sw-name,.stock-row .sw-sub{
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;   /* 可收缩 → 不把星顶歪 */
+  }
+  /* 竖屏**不滚动**：这里名字列占满剩下的宽度（实测 15 字名也放得下），
+     滚动反而会在手指边上一刻不停地动。桌面端格子只有 90px，才需要滚。 */
+  .stock-row.on .sw-name.ovf > .sw-name-in{animation:none}
+  .stock-row .sw-sub{grid-column:1;grid-row:2}
+  .stock-row .sw-star{
+    grid-column:2;grid-row:1 / span 2;align-self:center;justify-self:start;
+    width:30px;font-size:16px;padding:5px 0;     /* 手指点的东西，22px 太抠 */
+  }
+  /* 这两格必须是**固定宽**，星的位置才算得出来。58px 装得下 `-0.10%`（约 49px）。 */
+  .stock-row .sw-price{grid-column:3;grid-row:1 / span 2;align-self:center;width:52px}
+  .stock-row .sw-pct{grid-column:4;grid-row:1 / span 2;align-self:center;width:58px;text-align:center}
+
+  /* ── 行情头：横排改竖排。
+     基线是 .quote-head{display:flex} + .qh-left{flex:none}，窄屏下 .qh-left 的
+     max-content 宽 502px 会把统计格挤到 16px，而且整块被 .layout{overflow:hidden} 裁掉
+     （截图里右上角那排"今开/最高/最低"就是这么消失的）。改成竖排后两者各占满一行。 ── */
+  .quote-head{flex-direction:column;gap:7px;padding:6px 8px}
+  /* ⚠ 主轴上竖排之后，桌面那条 .quote-head > .ticker{flex:1 0 100%} 会变成
+     "高度撑满剩余空间" —— 于是预警条长成一条通到屏幕底的大红竖条。
+     竖排里它只是普通一行：不伸不缩，占满宽度。 */
+  .quote-head > .ticker{flex:0 0 auto;width:100%;margin-top:5px}
+  .qh-left{width:100%;min-width:0}
+  .qh-name{gap:6px;margin-bottom:3px}
+  .qh-name h1{font-size:17px}
+  .qh-tags{min-width:0}
+  .tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qh-price{gap:7px}
+  .qh-last{font-size:30px}
+  .qh-stats{width:100%}
+  /* 窄屏**固定 4 列**。原来写的是 `repeat(auto-fit,minmax(88px,1fr))`：
+     407px 正好落 4 列，360px 那种小屏落到 3 列 —— 而每组就是四格，
+     落到 3 列必然甩出一个孤格（「气压」自己占一行），比原来还乱。
+     固定 4 列后任何宽度都是「一组四格一行」，行数恒定、没有孤格。
+     列宽交给 minmax(0,1fr)（`0` 是关键：不加它 grid 子项的最小内容宽度
+     会把列撑开），再配合下面 `.qs span` 的 overflow-wrap:anywhere，
+     哪怕 320px 这种极窄屏也只是把长值折成两行，不会溢出压到隔壁格。 */
+  .qg{grid-template-columns:repeat(4,minmax(0,1fr));gap:1px 8px}
+  /* ── 每格改成「标签在上、数值在下」两行（**只作用于竖屏**）──
+     真机 407px 落到 4 列，每格只有 ~90px。原来标签与数值并排：光"日出/日落"
+     就占掉约 49px，留给 "06:21/18:15"（约 73px）的只剩 41px；而 `06:21/18:15`
+     这种串里**没有可断行的位置**，`white-space:normal` 也折不了它，于是直接
+     溢出压到右边那一格 —— 使用者截图里那行"文字重叠"就是这么来的。
+     改成上下两行后，数值独占整格宽度，上面这些长值全都放得下
+     （最长的是"36.2 mm / 24 h"，约 85px < 90px）。展开后确实比并排高一点，
+     但默认只展开两组，「全部数据 / 收起」那颗按钮就在下面。 */
+  .qs{font-size:11px;gap:1px;min-width:0;padding:0.5px 0;line-height:1.25;
+      flex-direction:column;align-items:stretch}
+  /* 标签不再和数值抢宽度，所以"风速"被截成"风…"那种事不会再发生；
+     留着省略号只是兜底（最长的标签"日出/日落"约 49px，一格放得下）。 */
+  .qs b{flex:0 0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 保险绳：万一还有更长的值，**允许在任意位置断行**。
+     宁可折成两行，也不能溢出压到隔壁格 —— 这正是上面那个 bug 的根因。 */
+  .qs span{text-align:left;white-space:normal;overflow:visible;overflow-wrap:anywhere}
+  /* ── 统计格默认折起后面三组 ──
+     真机 400px 宽时每组四格要排成 3+1 两行，五组 180px，主图就只剩不到 100px。
+     默认只留「气温」和「天空」两组（新加的云量/紫外线在这一组里，第一眼还看得见），
+     其余三组折起来。这颗按钮的显隐和 class 都只作用于窄屏，桌面一行代码都不变。 */
+  .quote-head.more-off .qg:nth-child(n+3){display:none}
+  .qh-more{
+    display:flex;align-items:center;gap:3px;flex:0 0 auto;order:8;margin:5px 0 0;
+    background:var(--panel2);border:1px solid var(--line2);border-radius:var(--r);
+    color:var(--dim2);font-family:inherit;font-size:11px;line-height:1;padding:4px 9px;cursor:pointer;
+  }
+  .qh-more:active{transform:translateY(1px)}
+  .qh-more i{font-style:normal;font-size:9px}
+
+  /* ── 图表标签栏可滑 ── */
+  #periodTabs,.tabbar{overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+  #periodTabs .tab,.tabbar .tab{flex:none}
+  .chart-hint{display:none}
+
+  /* ── 抽展成全屏，抽屉铺满 ── */
+  .drawer-panel{width:100%;max-width:100%;margin:0;height:100%;border-radius:0}
+  .dw-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+  /* ── 底部导航 ── */
+  .mtabs{
+    display:flex;background:var(--panel);border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom,0);
+  }
+  .mtab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;background:none;border:0;color:var(--dim);font-size:10.5px;
+    font-family:inherit;cursor:pointer;padding:0;
+  }
+  .mtab i{font-style:normal;font-size:16px;line-height:1}
+  .mtab.active{color:var(--accent)}
+  .mtab.active i{transform:translateY(-1px)}
+
+  /* 状态栏：手机上一行塞不下「已加载 …（86 根日K / 2592 个时次）＋ 下次刷新 ＋ 版本 ＋ 下载客户端」。
+     以前只改 padding/font-size，flex 子项仍然会被压缩，于是**在每个子项内部**折行
+     （截图里那半截「载 客」就是这么来的）。正确做法：子项不收缩、整条自己换行。 */
+  .statusbar{flex-wrap:wrap;row-gap:2px;padding:3px 8px;font-size:10.5px;min-height:22px}
+  .statusbar>*{flex:0 0 auto;white-space:nowrap;min-width:0}
+  .statusbar .grow{display:none}         /* 换行排版下这个"把右侧推到底"的占位符没用了 */
+  #statusLeft{flex:1 1 100%}             /* 「已加载 …」独占一行，其余排到第二行 */
+  #statusSrc{display:none}
+}
+
+/* 横屏手机 / 小平板：回到两栏（自选 + 图表），盘口折到下面 */
+@media (max-width:860px) and (orientation:landscape){
+  .mtabs{display:none}
+  body{grid-template-rows:auto auto auto minmax(0,1fr) auto auto}
+  .layout{grid-template-columns:170px minmax(0,1fr)}
+  .pane-left,.pane-center,.pane-right{display:flex;grid-area:auto}
+  .pane-right{display:none}
+  body[data-mtab="2"] .pane-right,
+  body[data-mtab="3"] .pane-right{display:flex;grid-column:1/-1}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   天气功能 —— 功能条 / 四个功能页 / 雷达·云图播放器 / 台风 / 预警
+   长相还是行情终端，点开是正经天气图。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────────────── 功能条 ───────────────── */
+.wx-bar{
+  display:flex;align-items:center;gap:6px;padding:0 10px;
+  background:var(--bg2);border-bottom:1px solid var(--line);
+  overflow-x:auto;overflow-y:hidden;
+}
+.wx-bar::-webkit-scrollbar{height:0}
+.wxbtn{
+  flex:none;display:inline-flex;align-items:center;gap:5px;
+  height:22px;padding:0 10px;border-radius:var(--r);
+  background:var(--panel2);border:1px solid var(--line2);color:var(--txt);
+  font-family:inherit;font-size:12px;cursor:pointer;white-space:nowrap;
+  transition:background .12s,border-color .12s,color .12s;
+}
+.wxbtn b{font-weight:600}
+.wxbtn:hover{background:#2e3543;border-color:#464f61;color:var(--txt-hi)}
+.wxbtn:active{transform:translateY(1px)}
+.wx-bar-hint{margin-left:auto;padding-left:12px;color:var(--dim);font-size:11px;flex:none}
+
+/* ───────────────── 预警滚动条 ─────────────────
+   炒股软件那种"一直往左滚的提示条"。整条可以点，点开预警信号面板。
+   ⚠ 滚动**不是** CSS 动画，而是 JS 每帧推 `.ticker-view` 的 `scrollLeft`：
+   内容在普通流里，所以手指一划 / 滚轮一滚随时能接管，接管期间自动走让位，
+   松手几秒后接着走；内容只有一份放得下时就完全不走。 */
+.ticker{
+  display:flex;align-items:center;height:24px;overflow:hidden;cursor:pointer;
+  background:linear-gradient(90deg,rgba(255,77,79,.13),rgba(255,77,79,.035) 60%,transparent);
+  border:1px solid rgba(255,77,79,.30);border-radius:3px;
+  font-size:11.5px;color:var(--txt);
+}
+.ticker:hover{background:linear-gradient(90deg,rgba(255,77,79,.20),rgba(255,77,79,.06) 60%,transparent)}
+.ticker-tag{
+  flex:none;display:flex;align-items:center;height:100%;padding:0 9px;
+  background:#c62828;color:#fff;font-weight:600;letter-spacing:.5px;
+  border-radius:2px 0 0 2px;
+}
+.ticker-view{
+  flex:1 1 auto;min-width:0;height:100%;
+  overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;-ms-overflow-style:none;
+  overscroll-behavior-x:contain;
+}
+.ticker-view::-webkit-scrollbar{width:0;height:0;display:none}
+.ticker-run{
+  display:flex;align-items:center;height:100%;width:max-content;
+  white-space:nowrap;
+}
+.ticker-it{display:inline-flex;align-items:center;gap:6px;padding:0 15px 0 0;margin-left:15px;border-right:1px dashed var(--line2)}
+.ticker-it b{font-weight:600}
+.ticker-it i{font-style:normal;color:var(--dim);font-family:var(--mono);font-size:10.5px}
+.ticker-it em{font-style:normal;color:var(--dim2)}
+.ticker-more{
+  flex:none;padding:0 10px;color:var(--dim);font-size:11px;
+  border-left:1px solid var(--line);height:100%;display:flex;align-items:center;
+}
+@media (max-width:860px){
+  .ticker{height:24px;font-size:11px}
+  .ticker-more{display:none}
+  .ticker-it{padding-right:12px;margin-left:12px}
+}
+
+/* ───────────────── 功能页外壳 ───────────────── */
+.wx-panel{width:min(1080px,94vw);height:min(780px,90vh)}
+.wx-panel-wide{width:min(1260px,96vw);height:min(830px,92vh)}
+.wx-sub{
+  margin-left:auto;color:var(--dim);font-size:11px;max-width:48%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.wx-body{padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.wx-body-flat{padding:0}
+.wx-load{padding:36px 12px;text-align:center;color:var(--dim);font-size:12.5px;line-height:1.7}
+
+/* ───────────────── 雷达 / 云图播放器 ───────────────── */
+.wx-player{display:flex;flex-direction:column;height:100%;min-height:0}
+.wx-pbar{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;flex:none;
+  border-bottom:1px solid var(--line);background:var(--panel2);
+}
+/* .wx-seg 可横向滚动：窄屏上八个雷达大区按钮放不下，
+   按钮必须 flex:none + nowrap，否则会被压得把"华南"断成两行。
+   雷达页有三行（大区 → 省 → 市），用 .wx-segs 竖着摞起来。
+
+   ⚠ 这里**故意不隐藏滚动条**。早先写的是 `scrollbar-width:none` +
+   `::-webkit-scrollbar{display:none}`，看着干净，但桌面端就真的滚不动了 ——
+   鼠标滚轮默认只滚垂直方向，滚动条又被藏起来，那一行看起来就是"卡住了"。
+   现在留一条细的可见滚动条当提示，另外 wxui.js 里给 .wx-seg 挂了 wheel
+   转横向的处理器。 */
+.wx-segs{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 auto}
+.wx-seg{display:flex;gap:4px;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:2px}
+
+/* ⚠ 天文抽屉里那排「✨观星 / 🌟此刻 / 🌌极光 / 🌗日月 / ☄️流星雨」**不许被压缩**。
+   根因：.wx-body 是 flex 列，内容一长（此刻/流星雨那两页特别长），
+   浏览器就按 flex-shrink 把这一排挤扁 —— 实测 观星/日月 24px、而 此刻/流星雨 只剩 **20px**，
+   而按钮本身固定 22px 高，于是底部 2px 溢出、被下面的内容盖住。
+   使用者报的就是这个：「点开此刻/极光/流星雨，上面的板块选择按钮会被遮挡」。
+   这里只锁 .wx-body > .wx-seg（天文那排），雷达页的 .wx-segs > .wx-seg 不受影响。 */
+.wx-body > .wx-seg{flex:0 0 auto}
+.wx-seg::-webkit-scrollbar{height:6px}
+.wx-seg::-webkit-scrollbar-track{background:transparent}
+.wx-seg::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+.wx-seg::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+.wx-segbtn{
+  flex:none;white-space:nowrap;height:22px;padding:0 11px;border-radius:var(--r);
+  background:var(--panel3);border:1px solid var(--line2);color:var(--txt);
+  font-family:inherit;font-size:12px;cursor:pointer;
+}
+.wx-segbtn.on{background:var(--accent);border-color:var(--accent);color:#1a1400;font-weight:600}
+.wx-pt{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--txt-hi)}
+/* 雷达页的城市搜索框：挨着第一行「📡 当前位置」那颗按钮。
+   为什么要有它：一个省的城市是**列全**的（广东 21 个），横着翻半天才找到自己要的那座。
+   放在 .wx-segs 右边（而不是塞进某一 .wx-seg 里）—— 那些行本身是横向可滚的，
+   塞进去会跟着一起滚走。 */
+.wx-find{
+  flex:0 0 auto;display:flex;align-items:center;gap:3px;height:22px;padding:0 6px;
+  background:var(--panel3);border:1px solid var(--line2);border-radius:var(--r);
+  /* 顶对齐：.wx-pbar 是 align-items:center，不写这条它就会挂在四行按钮的正中间，
+     看起来像贴着"省"那一行。顶对齐之后它正好和第一行「📡 当前位置」齐平。 */
+  align-self:flex-start;
+}
+.wx-find-ico{font-size:11px;line-height:1}
+.wx-find input{
+  width:96px;min-width:0;padding:0;background:none;border:0;outline:none;border-radius:0;
+  color:var(--txt-hi);font-family:inherit;font-size:12px;
+  /* ⚠ 必须关掉原生外观：`<input type=search>` 在 Chrome 里默认画一条底边线，
+     截图里就是"深"字下面那道横杠 —— border:0 管不了它（那是 appearance 画的）。 */
+  -webkit-appearance:none;appearance:none;
+}
+.wx-find input::placeholder{color:var(--dim2)}
+/* 原生小叉和放大镜装饰一起去掉，用自己那两颗 */
+.wx-find input::-webkit-search-decoration,
+.wx-find input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
+.wx-find-x{cursor:pointer;color:var(--dim2);font-size:11px;line-height:1;padding:1px 2px}
+.wx-find-x:hover{color:var(--accent)}
+/* 城市行被搜空时的占位（别留一行空白让人以为卡住了） */
+.wx-none{flex:none;color:var(--dim2);font-size:11.5px;padding:3px 2px}
+.wx-btn{
+  flex:none;height:22px;padding:0 13px;border-radius:var(--r);
+  background:var(--panel3);border:1px solid var(--line2);color:var(--txt-hi);
+  font-family:inherit;font-size:12px;cursor:pointer;
+}
+.wx-btn:hover{background:#2e3543;border-color:#464f61}
+.wx-stage{
+  flex:1;min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;
+  background:#07090d;padding:8px;overflow:hidden;
+}
+.wx-stage img{
+  /* min-width/min-height:0 不能省：img 是 .wx-stage 的 flex 子项，
+     而 flex 子项的 min-width:auto 会按内容尺寸兜底，把 max-width:100% 顶掉。
+     症状就是手机上雷达图按高度缩放后横向超出屏幕，右边一截被裁掉。 */
+  min-width:0;min-height:0;
+  max-width:100%;max-height:100%;object-fit:contain;
+  background:#04060a;border:1px solid var(--line);border-radius:2px;
+}
+.wx-range{flex:none;width:100%;margin:0;height:24px;accent-color:var(--accent);cursor:pointer}
+.wx-pfoot{
+  display:flex;justify-content:space-between;gap:12px;padding:2px 10px 9px;
+  color:var(--dim);font-size:11px;flex:none;
+}
+.wx-pidx{font-family:var(--mono)}
+
+/* ───────────────── 台风 ───────────────── */
+.wx-ty{display:grid;grid-template-columns:198px minmax(0,1fr);height:100%;min-height:0}
+.wx-tylist{
+  overflow-y:auto;border-right:1px solid var(--line);padding:6px;
+  display:flex;flex-direction:column;gap:4px;min-height:0;
+}
+.wx-tyitem{
+  display:flex;align-items:center;gap:7px;padding:6px 8px;text-align:left;
+  background:var(--panel2);border:1px solid var(--line);border-radius:3px;
+  color:var(--txt);font-family:inherit;font-size:12px;cursor:pointer;
+}
+.wx-tyitem:hover{background:#2a3140}
+.wx-tyitem.on{border-color:var(--accent);background:#2c2716}
+.wx-tyno{flex:none;font-family:var(--mono);color:var(--dim);font-size:11px}
+.wx-tyname{flex:1;color:var(--txt-hi);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wx-tylive{flex:none;color:var(--up);font-size:10.5px}
+.wx-tydead{flex:none;color:var(--dim2);font-size:10.5px}
+.wx-tymap{position:relative;min-width:0;min-height:0}
+.wx-map{position:absolute;inset:0}
+.wx-tyinfo{
+  position:absolute;left:10px;top:10px;padding:8px 11px;min-width:216px;
+  background:rgba(20,23,30,.93);border:1px solid var(--line2);border-radius:4px;
+}
+.wx-tynow{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--txt-hi);margin-bottom:6px}
+.wx-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.wx-tygrid{display:flex;flex-direction:column;gap:3px}
+.wx-tyrow{display:flex;justify-content:space-between;gap:14px;font-size:11.5px;color:var(--dim)}
+.wx-tyrow b{color:var(--txt-hi);font-weight:600;font-family:var(--mono)}
+
+/* ───────────────── 预警 ─────────────────
+   .wx-warn / .wx-quake 都是「长列表」，必须自己滚。
+   父级 .wx-body 是 overflow:hidden 的 flex 列，所以这里要给
+   flex:1 1 auto + min-height:0 才能拿到可滚动的高度；
+   只写 overflow-y:auto 而不写 min-height:0 的话，flex 子项的
+   默认 min-height:auto 会让它撑到内容那么高，父级一裁就永远滚不动。 */
+.wx-warn,.wx-quake{
+  padding:9px 11px;display:flex;flex-direction:column;gap:8px;
+  flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+}
+.wx-quake{gap:6px}
+.wx-warn::-webkit-scrollbar,.wx-quake::-webkit-scrollbar{width:8px}
+.wx-warn::-webkit-scrollbar-track,.wx-quake::-webkit-scrollbar-track{background:transparent}
+.wx-warn::-webkit-scrollbar-thumb,.wx-quake::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+.wx-warn::-webkit-scrollbar-thumb:hover,.wx-quake::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+.wx-warn-item{
+  background:var(--panel2);border:1px solid var(--line);
+  border-left:3px solid var(--flat);border-radius:3px;padding:8px 10px;flex:none;
+}
+.wx-warn-t{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--txt-hi);font-weight:600}
+/* ⚠ 这一格必须**定宽**。shortWarn() 取出来的是「大风 / 沙尘暴 / 道路结冰 / 雷雨大风 / 预警」
+   —— 1～4 个字都有，宽度不一，于是后面那句预警标题整排在 268…290 之间左右跳（实测偏 22px）。
+   定宽 56px：4 个 11px 粗体中文字约 44px，加左右各 6px 内边距正好；短的就居中留白。 */
+.wx-warn-tag{flex:none;width:56px;box-sizing:border-box;text-align:center;padding:1px 0;border-radius:2px;color:#1a1400;font-size:11px;font-weight:700}
+.wx-warn-time{color:var(--dim);font-size:11px;margin-top:4px;font-family:var(--mono)}
+.wx-warn-x{margin-top:6px;color:var(--txt);font-size:12px;line-height:1.6;white-space:pre-wrap;text-wrap:pretty}
+/* 「离你多远」那一小段，跟时间同行右对齐 */
+.wx-warn-d{float:right;color:var(--accent);font-family:var(--mono)}
+
+/* ───────────────── 地震 ───────────────── */
+.wx-qk-item{
+  background:var(--panel2);border:1px solid var(--line);
+  border-left:3px solid var(--flat);border-radius:3px;padding:7px 10px;flex:none;
+}
+.wx-qk-top{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--txt-hi);font-weight:600}
+/* 徽章宽度固定，免得 M4.0 和 M6.2 把地点那一列推得左右横跳 */
+.wx-qk-mag{
+  flex:none;min-width:36px;text-align:center;padding:1px 5px;border-radius:2px;
+  color:#1a1400;font-size:11px;font-weight:700;font-family:var(--mono);
+}
+.wx-qk-place{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wx-qk-d{flex:none;color:var(--accent);font-size:11.5px;font-family:var(--mono)}
+/* 元信息那行做成 flex：左边一串流水账（时间 · 深度 · 震度 · 烈度 · 自动测定），
+   右端固定放来源。原来源是**接在流水账后面**的，而流水账长短不一
+   （实测来源标签的左缘在 365.7…406.3 之间跳，偏 40.6px）——
+   一列来源扫下来对不齐，也就失去了"一眼看出这条是谁报的"的意义。
+   `margin-left:auto` 把它顶到最右，右缘就稳定了；窄屏放不下时整块换行，仍然靠右。 */
+.wx-qk-meta{color:var(--dim);font-size:11px;margin-top:4px;font-family:var(--mono);
+  display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}
+.wx-qk-mx{min-width:0}
+/* 逐条来源标签（中国地震台网 / 日本气象厅 / USGS）。合并三路之后每一行都得说清是谁报的，
+   压暗一档让它退到时间/深度后面去。 */
+.wx-qk-src{margin-left:auto;flex:none;color:var(--dim2)}
+/* CENC 的 `type: automatic` = 自动测定、还没人工复核。这个区别有意义（自动测定会改），
+   但也不能抢戏，所以给它一个安静的小标签而不是告警色。 */
+.wx-qk-auto{color:var(--accent)}
+/* 津波情报（只出现在日本气象厅的目录里，多数条目没有）。 */
+.wx-qk-tsu{color:var(--accent);font-size:11px;margin-top:3px;line-height:1.5}
+/* 列表底部的来源署名。**必须留在界面上**：Wolfx 的《使用许可》要求
+   「在第三方引用本站内容请注明内容来自本站」，藏在免责声明弹窗里不算数。
+   flex:none + 独立边框，所以列表自己滚的时候它始终停在底部。 */
+.wx-qk-foot{
+  flex:none;padding:9px 4px 2px;border-top:1px solid var(--line);
+  color:var(--dim);font-size:11px;line-height:1.6;
+}
+.wx-qk-foot b{color:var(--txt-hi)}
+
+/* ───────────────── 地震预警（EEW）─────────────────
+   放在列表**上方**、`flex:none`，所以列表怎么滚它都停在最上面 —— 预警是这一页里
+   唯一"时间敏感"的东西，不能让它被滚走。
+   ⚠ 默认是灰底（`.wx-eew`）：那六条流给的是"该机构最后一次发布"，可能是三天前的。
+   只有发震在 **30 分钟内**才加 `.hot` 变成告警红 —— 否则一进页面就会看到一条
+   三天前的"预警"在闪，那比不显示更糟。 */
+.wx-eew{
+  flex:none;border:1px solid var(--line);border-left:3px solid var(--dim);
+  border-radius:3px;padding:8px 10px;margin-bottom:8px;background:var(--panel2);
+}
+.wx-eew.hot{border-left-color:#e74c3c;background:rgba(231,76,60,.10)}
+.wx-eew-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.wx-eew-t{font-size:12px;font-weight:700;color:var(--dim)}
+.wx-eew.hot .wx-eew-t{color:#e74c3c}
+.wx-eew-src{font-size:11px;color:var(--txt-hi)}
+.wx-eew-ago{margin-left:auto;font-size:11px;color:var(--dim2);font-family:var(--mono)}
+.wx-eew-b{font-size:13px;color:var(--txt-hi);font-weight:600;line-height:1.45}
+.wx-eew-b b{font-family:var(--mono);color:var(--accent)}
+.wx-eew.hot .wx-eew-b b{color:#e74c3c}
+.wx-eew-m{margin-top:3px;font-size:11px;color:var(--dim);font-family:var(--mono);line-height:1.5}
+.wx-eew-a{margin-top:3px;font-size:11px;color:var(--txt-hi);line-height:1.5}
+.wx-eew-f{margin-top:4px;font-size:10.5px;color:var(--dim2);line-height:1.5}
+
+/* ───────────────── 天文 ─────────────────
+   跟 .wx-warn/.wx-quake 一样是长内容：父级 .wx-body 是 overflow:hidden 的
+   flex 列，所以 .wx-as 必须自己写 flex:1 1 auto + min-height:0 才滚得动
+   （只写 overflow-y:auto 而不写 min-height:0，flex 子项的默认 min-height:auto
+   会把它撑到内容那么高，父级一裁就永远不能滚）。 */
+.wx-as{
+  flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  padding:9px 11px;display:flex;flex-direction:column;gap:9px;
+}
+.wx-as::-webkit-scrollbar{width:8px}
+.wx-as::-webkit-scrollbar-track{background:transparent}
+.wx-as::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+.wx-as::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+
+/* 头一张卡：一个很大的数字（或 emoji）+ 一句话结论 */
+.wx-as-lead{
+  display:flex;align-items:center;gap:14px;flex:none;
+  background:var(--panel2);border:1px solid var(--line);border-radius:3px;padding:10px 12px;
+}
+.wx-as-big{flex:none;font-family:var(--mono);font-size:34px;line-height:1;color:var(--accent)}
+.wx-as-leadlab{font-size:11.5px;color:var(--dim);line-height:1.7;min-width:0;text-wrap:pretty}
+.wx-as-leadlab b{color:var(--txt-hi);font-size:13.5px}
+.wx-as-h2{
+  flex:none;font-size:11.5px;color:var(--dim);letter-spacing:.4px;
+  border-top:1px solid var(--line);padding-top:7px;margin-top:1px;
+  /* 小标题只有一行半行，`balance` 会把两行劈得一样长，不会留下一个孤零零的字 */
+  text-wrap:balance;
+}
+.wx-as-h2:first-child{border-top:0;padding-top:0;margin-top:0}
+.wx-as-note{flex:none;font-size:12px;color:var(--txt);line-height:1.75;text-wrap:pretty}
+.wx-as-note b{color:var(--accent2)}
+.wx-as-foot{
+  flex:none;font-size:11px;color:var(--dim2);line-height:1.75;
+  border-top:1px solid var(--line);padding-top:8px;text-wrap:pretty;
+}
+.wx-as-foot b{color:var(--dim)}
+
+/* 逐小时一行：时间 · 条形 · 分数 · 云量。四列都用固定宽度，
+   免得数字位数一变整列就左右横跳（跟 .wx-qk-mag 一个道理）。 */
+.wx-as-list{flex:none;display:flex;flex-direction:column;gap:4px}
+.wx-as-row{display:flex;align-items:center;gap:9px;font-size:11.5px;font-family:var(--mono)}
+.wx-as-row>b{flex:none;width:42px;color:var(--dim);font-weight:400}
+/* ⚠ 三个窄格（时间 / 条形 / 分数）定宽，但**分数那一格不能定死 76px**：
+   霞页那句话是「78 很可能烧起来」，比 76px 宽，定死就断成「78 很可能烧」/「起来」。
+   改成 `min-width` —— 窄的时候仍然占满 76px（表格照样对齐），
+   内容比它宽时自己长出去，条形图那边跟着缩。 */
+.wx-as-row>span{flex:none;min-width:76px;text-align:right;white-space:nowrap}
+.wx-as-row>em{flex:none;width:52px;text-align:right;color:var(--dim2);font-style:normal}
+/* 「今晚逐小时」最右边那一列「云 低/中高」。
+   ⚠ 使用者 2026-10-09 截图："云那一列的云没有纵对齐"。根因有两层：
+   ① 那一列只有**一格** `width:52px;text-align:right`，而 `云 4/78` 比 52px 还宽 ⇒
+      超出的部分从右边缘溢出去，`text-align:right` 等于失效，整格看起来是**左对齐**；
+   ② 就算宽度够，"4/78" 和 "0/1" 这两个数的宽度本来就不同 —— 右对齐也只对得齐最后一个数字。
+   按本项目定的对齐原则（**贴近不变的那一侧**）：这里不变的是分隔符「/」，
+   所以拆成三格 —— 左边的数右对齐贴着「/」、右边的数左对齐贴着「/」，两个数跨行都能直接比。
+   总云量（没有分层数据时的退路）用中间那格居中，占满同一个 51px 区间。 */
+.wx-as-row>em.wx-as-cloud{width:auto;text-align:left}
+.wx-as-cloud .wc-c1{display:inline-block;width:20px;text-align:right;font-style:normal}
+.wx-as-cloud .wc-cc{display:inline-block;width:7px;text-align:center;color:var(--dim2);font-style:normal}
+.wx-as-cloud .wc-c2{display:inline-block;width:24px;text-align:left;font-style:normal}
+.wx-as-cloud .wc-ct{display:inline-block;width:51px;text-align:center;font-style:normal}
+.wx-as-bar{flex:1 1 auto;display:block;height:9px;background:var(--panel3);border-radius:2px;overflow:hidden}
+.wx-as-bar>b{display:block;height:100%;border-radius:2px}
+
+/* 「时段」那种两列行（日月那一页） */
+.wx-as-row2{
+  display:flex;align-items:baseline;gap:10px;font-size:12px;
+  padding:4px 0;border-bottom:1px dashed var(--line);
+}
+.wx-as-row2:last-child{border-bottom:0}
+.wx-as-row2>b{flex:none;width:126px;color:var(--dim);font-weight:400}
+.wx-as-row2>span{color:var(--txt-hi);font-family:var(--mono)}
+.wx-as-row2 i{color:var(--dim2);font-style:normal}
+
+/* 值内部的**子列**：`.wx-as-cols` 里每个 <i> 定宽。
+   原来是拿 `　·　` 把「高度 / 方位 / 星等 / 星座」「星等 / 高度 / 方位 / 距角 / 今夜时段」
+   串成一句话的 —— 各段长短不一（`17°` vs `80°`、`西南北` vs `东南`），
+   于是后半截整排左右跳，看着歪歪扭扭。定宽之后行与行才对得齐。
+   ⚠ `flex-wrap:wrap` 是必须的：竖屏一行放不下时让「今夜 …」整段落到下一行，
+     而那一行的起点**仍在值这一列里**（不会跑回名字列最左边）。
+   ⚠ 但**光有 wrap 还不够**：换行位置必须只由定宽列决定，绝不能由某一格自己的文字长短决定，
+     否则同一张表里会长短两行各歪各的（`.wc-w` 就踩过这个坑，见下面的注释）。 */
+.wx-as-cols{display:flex;align-items:baseline;flex-wrap:wrap;min-width:0}
+/* ⚠ **每一格内部永不断行**。定宽只是把格子的宽度钉住，内容比它宽时浏览器照样
+   会在格子**里面**折行 —— 实测：竖屏 `.wc-e` 只有 58px，而「距角 175°」要 58.8px，
+   于是「距角」留在第一行、`175°` 掉到第二行；两位数（`55°`/`24°`）就没事。
+   土星/天王星/海王星恰好都是三位数，看起来就像"加了这两颗星才歪的"。
+   现在格内不断行：真放不下时宁可溢出几像素到 8px 的格间空隙里（看不出来），
+   也绝不折行。换行只允许发生在**格子与格子之间**。 */
+/* ⚠ 这一格要用**正常值颜色**，不能沿用 `.wx-as-row2 i` 的 `--dim2`。
+   上面那条 `i{color:var(--dim2)}` 本来是给「日月」页的**时长**那种次要注解用的，
+   而 `.wx-as-cols>i` 装的是**主值** —— 于是同一个抽屉里，用 `<span>` 写的行（月亮此刻）
+   是亮的、用 `.wx-as-cols` 写的行（太阳此刻、行星表）是暗的，同一份数据两种亮度。
+   使用者一眼就看出来了。次要格子各自有更具体的选择器（`.wc-x` / `.wc-w` / `.wc-d2` / `.wc-dim`），
+   要压暗在它们自己那儿压。 */
+.wx-as-cols>i{flex:none;font-style:normal;white-space:nowrap;color:var(--txt-hi)}
+.wx-as-cols>i+i{margin-left:8px}
+.wx-as-cols .wc-m{width:62px;text-align:right}   /* 星等  -0.05 等 */
+.wx-as-cols .wc-a{width:30px;text-align:right}   /* 高度  17°（地平线以下是 —） */
+.wx-as-cols .wc-d{width:58px}                    /* 方位  西南偏北 */
+/* ⚠ 这一格要**左对齐**，跟旁边几格相反 —— 判据是"**不变的那一侧**在哪边"：
+   `.wc-e` 的内容是「距角 24°」/「距角 175°」，**不变的是开头那两个字**，
+   变的是后面的度数。右对齐会把不变的标签推得忽左忽右（`距角 175°` 的左缘比
+   `距角 24°` 靠左一整个字符），而人是**从左往右**读的 —— 所以左对齐。
+   反过来 `.wc-m` 的 `等`、`.wc-a` 的 `°` 都在**右边**，那两格就该右对齐。 */
+.wx-as-cols .wc-e{width:64px}
+/* ⚠ 「地平线下」这一格**必须定宽、并且每一行都要有**（不该有的时候留空）。
+   最初它是"有就插、没有就省"的标签，于是没有它的那一行（行星正好在地平线上）
+   后面的「今夜 …」整个提前了 52px —— 使用者一眼就看出来那行歪了。
+   空格子比省掉更整齐：列是给眼睛看的，不是给 DOM 省节点用的。 */
+.wx-as-cols .wc-x{width:52px;color:var(--dim2)}
+/* 「日月」页那张时段表用的两格：时段（`06:16 → 17:45`，有时只有起始时刻没有结束，
+   宽度会差一个等宽字符）+ 时长。
+   ⚠ 时长那一格（`.wc-d2`）按「贴住不变的那一侧」该**右对齐**：「11 小时 29 分」/「53 分」/
+   「10 分」不变的是末尾那个「分」，变的是前面 —— 左对齐的话右缘会漂 43px（实测）。
+   要右对齐就得给它**定宽**，否则 `.wx-as-row2>span` 会缩到内容宽，右对齐等于没对齐。 */
+.wx-as-cols .wc-t2{width:118px}
+.wx-as-cols .wc-d2{flex:none;width:88px;text-align:right;color:var(--dim2)}
+/* ⚠ 这一格必须是**定宽且不收缩**（flex:none + 固定宽度），不能写成 `flex:1 1 auto`。
+   写成自适应时它会"能塞下就挤在「地平线下」右边、塞不下就自己另起一行" ——
+   于是同一张表里，文字短的两行（`今夜不升到 10°`）今夜在 x=186，
+   文字长的五行（`今夜 02:43→05:49（最高 46°） · 共 3 小时 06 分`）今夜在 x=126，
+   整列歪 60px。**实测确认**：`.wc-x` 七行都在 x=126/w52，`.wc-w` 却分成 186 与 126 两档。
+   定宽之后，换行位置只由前面那几个定宽列决定，跟这一格自己的文字长短彻底无关。
+   `max-width:100%` 是防极窄屏横向溢出（定宽 340 > 值列宽时会顶出去）。 */
+/* ⚠ 这一格是**例外**：它自己就长，必须允许换行 —— 但只许在**短语之间**换。
+   原来把「今夜 18:47→05:17（最高 69°） · 共 10 小时 30 分」串成一整段文字，
+   浏览器会在任意两个汉字之间断，实测断出了「… · 共 10 小」/「时 30 分」这种。
+   现在由 `winSeg()` 拆成若干个 `span.nb`（短语原子），每个 nb 自己不断行，
+   换行只发生在 nb 与 nb 之间。 */
+.wx-as-cols .wc-w{flex:none;width:340px;max-width:100%;color:var(--dim);white-space:normal}
+.wx-as-cols .wc-w .nb{white-space:nowrap}
+.wx-as-cols .wc-w .nb+.nb{margin-left:5px}
+.wx-as-cols .wc-dim{color:var(--dim2)}
+
+/* Kp 柱状图：柱子按 Kp/9 的高度撑，颜色直接用 kpScale 的分级色 */
+.wx-as-kp{
+  flex:none;display:flex;align-items:flex-end;gap:2px;height:92px;
+  padding:0 2px;border-bottom:1px solid var(--line2);
+}
+.wx-as-kp>i{flex:1 1 0;min-width:2px;display:block;border-radius:1px 1px 0 0}
+.wx-as-axis{flex:none;display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim2);font-family:var(--mono)}
+
+/* 流星雨卡片 */
+.wx-as-card{
+  flex:none;display:flex;flex-direction:column;gap:3px;
+  background:var(--panel2);border:1px solid var(--line);
+  border-left:3px solid var(--line2);border-radius:3px;padding:8px 10px;
+}
+.wx-as-card.on{border-left-color:var(--accent)}
+.wx-as-cardhead{display:flex;align-items:center;gap:8px}
+.wx-as-cardhead>b{font-size:13px;color:var(--txt-hi)}
+.wx-as-badge{flex:none;font-size:10px;padding:1px 5px;border-radius:2px;background:var(--accent);color:#1a1400}
+.wx-as-meta{font-size:11.5px;color:var(--dim);font-family:var(--mono);line-height:1.6;text-wrap:pretty}
+
+/* 全年气候那一排柱子（观星页）。12 个月等宽分栏，柱高＝当月少云夜率相对**全年最高月**
+   的比例 —— 用相对值是为了让"哪个月最好"一眼看出来；绝对值放在下面那句话里
+   （全年 %、折算夜数、最适合的三个月）。 */
+.wx-as-clim{flex:none;display:flex;align-items:flex-end;gap:3px;height:84px;padding:0 2px}
+.wx-as-clim>span{flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end}
+.wx-as-clim>span>b{display:block;width:100%;border-radius:2px 2px 0 0;min-height:2px}
+.wx-as-climax{flex:none;display:flex;gap:3px;padding:2px 2px 0;border-top:1px solid var(--line2)}
+.wx-as-climax>i{
+  flex:1 1 0;min-width:0;text-align:center;font-style:normal;
+  font-size:9.5px;color:var(--dim2);font-family:var(--mono);
+}
+
+/* ── 光污染卡（观星页）──
+   这是**站点常量**，不该跟逐小时的云量评分挤在同一排，所以单独一块。
+   左边一个 zone 徽标、中间两行字、右边"夜空上限"的分数。
+   ⚠ 窄屏下必须允许换行：`.wx-as-lpt` 里那句 brief 有二十多个字，
+     不让它 `flex:1 1 auto; min-width:0` 就会把右列顶出去（横向溢出）。 */
+.wx-as-lp{
+  flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:8px 10px;border-radius:3px;background:var(--panel2);border:1px solid var(--line);
+}
+.wx-as-lpz{
+  flex:none;font-family:var(--mono);font-size:15px;font-weight:700;
+  padding:3px 9px;border-radius:2px;color:#12141a;
+}
+.wx-as-lpt{flex:1 1 auto;min-width:0;font-size:12px;color:var(--txt-hi);line-height:1.6}
+.wx-as-lpt em{color:var(--dim);font-style:normal}
+.wx-as-lpcap{flex:none;text-align:right;font-size:10.5px;color:var(--dim);line-height:1.35}
+.wx-as-lpcap i{display:block;font-style:normal;color:var(--dim2)}
+.wx-as-lpcap b{font-family:var(--mono);font-size:19px;color:var(--accent)}
+
+/* 页脚里的外链（观星页）──
+   「看银河要几级 / 去哪找够暗的地方」那两句搬进 `.wx-as-foot` 之后，
+   地图入口就落在这里，得让它在 10.5px 的小字里仍然看得出是可点的。 */
+.wx-as-foot a{color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.wx-as-foot a:hover{color:var(--accent)}
+
+/* 火烧云徽标（霞页）。它是"有没有"的判定，不是分数，所以做成一枚小标签。 */
+.wx-as-fire{
+  flex:none;font-size:10.5px;padding:1px 6px;border-radius:2px;
+  background:rgba(231,76,60,.16);color:#e74c3c;border:1px solid rgba(231,76,60,.4);
+}
+.wx-as-nofire{
+  flex:none;font-size:10.5px;padding:1px 6px;border-radius:2px;
+  background:var(--panel3);color:var(--dim2);border:1px solid var(--line);
+}
+
+/* ───────────────── 竖屏 ───────────────── */
+@media (max-width:860px){
+  /* 这一排按钮（雷达回波…地震…天文）在 390px 下合计超过一屏：靠横向滚动的话
+     排在最右边的那一颗整个都在屏幕外，用户根本不知道它存在。
+     竖屏改成换行显示，一行放不下就换第二行。 */
+  .wx-bar{
+    padding:4px 8px;gap:5px;row-gap:5px;flex-wrap:wrap;
+    overflow:visible;height:auto;
+  }
+  .wxbtn{height:24px;padding:0 8px;font-size:11.5px}
+  .wx-bar-hint{display:none}
+  .wx-panel,.wx-panel-wide{width:100%;max-width:100%;height:100%;border-radius:0}
+  /* 竖屏**不再把 .wx-sub 藏起来**。它装的正是"这一屏在看什么"：雷达用的是哪一站、
+     离你多少公里、播放到几点；天文页是"天文夜 18:14→05:49 · 残月 17%"。
+     当初藏它只是为了省抽屉头部那一行高度，代价是用户只剩一个光秃秃的标题。
+     现在改成：标题和 ✕ 占第一行，说明文字换到第二行、占满整行（太长就折行）。
+     ⚠ 只作用于 .wx-panel（七个天气功能页）—— 城市列表和术语表那两个抽屉的头部
+     里放的是搜索框，不能跟着换行。
+     用 order:3 是把说明排到最后：光靠 flex-wrap 的话，flex-basis:100% 的说明
+     会把后面的 ✕ 挤到第三行去。 */
+  .wx-panel .drawer-head{flex-wrap:wrap;height:auto;row-gap:3px;padding:7px 10px}
+  .wx-panel .drawer-head .mini{margin-left:auto}
+  .wx-panel .wx-sub{
+    display:block;order:3;flex:1 1 100%;max-width:100%;margin-left:0;
+    white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;
+    /* 竖屏上这一行经常折成两行、末行只剩一两个字（实测「…行星 2/7 颗在地平线」/「上」）。
+       `balance` 把两行劈匀，就不会留一个孤字。 */
+    text-wrap:balance;
+  }
+  .wx-pbar{flex-wrap:wrap;row-gap:6px}
+  .wx-pt{margin-left:0}
+  /* 竖屏下 .wx-pbar 会换行，那就让搜索框**独占一行**、把宽度用起来 ——
+     窄屏上 96px 只能搜两个字，城市名根本打不全。 */
+  .wx-find{flex:1 1 100%;height:26px}
+  .wx-find input{width:100%;flex:1 1 auto;font-size:13px}
+  .wx-ty{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .wx-tylist{
+    flex-direction:row;overflow-x:auto;overflow-y:hidden;
+    border-right:0;border-bottom:1px solid var(--line);
+  }
+  .wx-tyitem{flex:none;white-space:nowrap}
+  .wx-tyitem.on .wx-tyno,.wx-tyitem.on .wx-tylive,.wx-tyitem.on .wx-tydead{display:none}
+  .wx-tyinfo{left:6px;right:6px;top:6px;min-width:0}
+  .wx-stage{padding:4px}
+}
+
+/* ───────────────── 主图全屏（⤢） ───────────────── */
+/* 把 .layout 钉到整个视口，顶栏/天气条/指数条/左右栏/状态栏/底部页签全部让位。
+   没有用 Fullscreen API：iOS Safari 至今不支持 Element.requestFullscreen，
+   而 CSS 方案在哪儿都能用，退出也只要再点一次或按 Esc。
+   这些区用 visibility 而不是 display 隐藏 —— 布局不发生跳变，
+   进出全屏前后 .pane-center 的量测结果一致，ECharts 只需要一次 resize。 */
+body.fullchart .layout{
+  position:fixed;inset:0;z-index:200;
+  grid-template-columns:minmax(0,1fr);
+  background:var(--panel);
+}
+body.fullchart .pane-left,
+body.fullchart .pane-right{display:none!important}
+body.fullchart .pane-center{display:flex!important;min-height:0}
+body.fullchart .topbar,
+body.fullchart .wx-bar,
+/* 滚动条现在住在 .quote-head 里面（主图正上方），所以全屏看主图时要单独点名它 */
+body.fullchart .quote-head .ticker,
+body.fullchart .index-strip,
+body.fullchart .statusbar,
+body.fullchart .disclaimer,
+body.fullchart .mtabs{visibility:hidden}
+#btnFull.active{color:var(--accent);border-color:var(--accent)}
+
+@media (max-width:860px){
+  /* 手机地址栏收起/展开会改 100vh 的真实含义，dvh 跟随可视高度。
+     不支持 dvh 的浏览器会忽略这一行，退回上面那条 100vh。 */
+  body{height:100vh;height:100dvh}
+
+  /* 主图原来是 flex:1 + min-height:0 —— 在可视高度偏小的手机上会被压成 0 高，
+     表现就是"用手机竖屏打开网页时主图不显示"。给一个高度下限，
+     实在放不下时改由 .pane-center 内部滚动，而不是把图表压没。 */
+  .pane-center{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .chart-box{flex:1 1 auto;min-height:170px}
+  .chart-box.sub{flex:0 0 132px;min-height:132px}
+
+  /* 底部页签始终压在图表之上；它自己不是滚动区，所以滚动时不会被带走 */
+  .mtabs{position:relative;z-index:90}
+
+  /* 触屏没有 hover：搜索结果里的 ☆ 必须看得见也点得着（原来只有 13px） */
+  .sr-item{padding:9px 10px}
+  .sr-item .sr-star{font-size:16px;padding:3px 9px;margin-left:4px}
+
+  /* 触屏横向滚动区：让浏览器知道这些区域可以横向平移，别把手势吃掉 */
+  .index-strip,#periodTabs,.tabbar,.wx-bar,.wx-seg,.strip-list,.wx-tylist{
+    touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch;
+  }
+}
+
+/* ───────────────── 免责声明（常驻底端） ───────────────── */
+/* 私自开展天气预报业务是违法的，所以这一条必须一直看得见，
+   不能只藏在首次弹窗里（弹窗关掉就再也找不到了）。点它可以重新弹出来看完整版。 */
+.disclaimer{
+  display:flex;align-items:center;gap:6px;padding:0 12px;
+  font-size:10.5px;color:var(--dim2);cursor:pointer;
+  background:#12151c;border-top:1px solid var(--line2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.disclaimer:hover{color:var(--dim);background:#161a22}
+
+/* ── 手机上那条「曲线＝气象局发布值连线示意 · 台站 · 发布时间」 ──
+   桌面端这份说明在 #chartHint 里，但它在窄屏那档是 display:none（图表头挤不下），
+   于是安卓上**等于没有** —— 而这是《气象预报发布与传播管理办法》第九条要求注明的。
+   所以窄屏单独起一行、允许换行；桌面端这行不显示，两边各显示一次、不重复。 */
+.src-line{display:none}
+@media (max-width:860px){
+  .src-line{
+    display:block;font-size:10px;line-height:1.5;color:var(--dim2);
+    padding:4px 8px 0;white-space:normal;
+  }
+  /* ⚠ 必须保留：.src-line 的 display:block 会盖掉 hidden 属性自带的 display:none，
+     不写这条的话"没有保底曲线"时它会空占一行高度。 */
+  .src-line[hidden]{display:none}
+}
+@media (max-width:860px){
+  /* 免责声明在手机上**必须只有一行**。
+     ⚠ 这里翻过两次车，都记下来：
+       ① 最初是 nowrap + ellipsis，但**文案太长**，于是只显示前半句 —— 用户报「免责文字也显示不完全」；
+       ② 我当时的修法是**允许换行**（就是下面这行 white-space:normal），
+          结果合规那轮文案加长到 120 字，撑成三四行，把地图挤上去了。
+     真正的解法是**把文案缩短到一行装得下** —— 现在是 27 个汉字，而 10px 字号在 390px 宽里
+     放得下约 55 个。不该让它在「显示不全」和「太高」之间来回横跳，该动的是文案长度。
+     仍然保留 overflow+ellipsis 作**兜底**：真遇到 250px 这种极窄屏也只是末尾省略，
+     不会溢出、也不会把别的东西顶下去。完整的免责内容一律在弹窗里（index.html 的 welcome）。 */
+  .disclaimer{
+    display:block;padding:3px 8px;font-size:10px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.6;
+  }
+}
+
+/* ───────────────── 首次访问的免责弹窗 ───────────────── */
+/* 只在第一次打开时弹一次（localStorage: welcomed）。刻意做得比 toast 郑重，
+   因为要说的是一件"你别拿它当官方预报"的正经事。 */
+.modal-mask{
+  position:fixed;inset:0;z-index:300;display:flex;
+  align-items:center;justify-content:center;padding:20px;
+  background:rgba(4,6,10,.72);backdrop-filter:blur(2px);
+}
+.modal-card{
+  width:min(520px,100%);max-height:88vh;overflow:auto;
+  background:var(--panel);border:1px solid var(--line2);border-radius:8px;
+  box-shadow:0 24px 70px rgba(0,0,0,.75);display:flex;flex-direction:column;
+}
+.wm-head{
+  padding:13px 18px;border-bottom:1px solid var(--line);background:var(--bg2);
+  border-radius:8px 8px 0 0;color:var(--txt-hi);font-size:14px;font-weight:600;
+  /* 内容变长之后整张卡会滚动（`.modal-card` 是 `max-height:88vh;overflow:auto`），
+     标题和底部那颗按钮得**粘住** —— 否则滚到中间时既看不到"这是什么"，
+     也看不到"怎么关掉"。 */
+  position:sticky;top:0;z-index:2;
+  /* 竖屏上这句标题折成两行、末行只剩俩字（实测「…有件事得先说清楚」还差 3px 就一行）。
+     `balance` 把两行劈匀 —— 它管不了"差 3px 就一行"这种，但能把孤字摊平。 */
+  text-wrap:balance;
+}
+.wm-body{padding:16px 18px 4px;font-size:13px;line-height:1.75;color:var(--txt);text-wrap:pretty}
+.wm-body p{margin:0 0 12px}
+/* 免责声明升级成"分区"的（2026-10-08 使用者说「加了那么多功能免责声明是不是要补全一点了」）——
+   数据来源 / 本站自己算的 / 容易误会的事 / 隐私，四块。没有小标题就是一大坨，
+   读者根本不知道哪句在说哪件事。 */
+.wm-body h5{
+  margin:16px 0 8px;font-size:12.5px;font-weight:700;color:var(--accent);
+  letter-spacing:.4px;text-wrap:balance;
+}
+.wm-body h5:first-child{margin-top:0}
+/* 免责声明里那张「数据来源清单」和「容易误会的事」用列表 —— 以前全挤在段落里，
+   加一个数据源就多一行字，读的人根本分不清哪句对应哪个来源。 */
+.wm-body ul.wm-list{margin:0 0 12px;padding-left:17px;list-style:disc}
+.wm-body ul.wm-list li{margin:3px 0}
+.wm-body ul.wm-list li::marker{color:var(--dim2)}
+.wm-body code{
+  font-family:var(--mono);font-size:11.5px;color:var(--dim);
+  background:#1a1f29;border-radius:3px;padding:0 3px;
+}
+.wm-body b{color:var(--txt-hi)}
+.wm-body u{text-decoration-color:var(--accent);text-underline-offset:3px}
+.wm-body a{color:var(--accent)}
+.wm-note{
+  font-size:12px;color:var(--dim);background:#0e1117;border-left:2px solid var(--accent);
+  padding:8px 11px;border-radius:0 var(--r) var(--r) 0;
+}
+.wm-cute{
+  text-align:center;color:var(--dim);font-size:12.5px;
+  border-top:1px dashed var(--line2);padding-top:12px;
+}
+.wm-foot{padding:4px 18px 18px;display:flex;justify-content:flex-end;
+  position:sticky;bottom:0;background:var(--panel);z-index:2;
+  border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
+.btn-wm{
+  height:32px;padding:0 18px;border-radius:var(--r);cursor:pointer;
+  background:var(--accent);border:1px solid var(--accent);color:#1a1400;
+  font-family:inherit;font-size:13px;font-weight:600;
+}
+.btn-wm:hover{filter:brightness(1.1)}
+
+/* ── 天文那排 tab 在窄屏上的内边距 ──
+   这一排原来是 5 个（✨观星 / 🌟此刻 / 🌌极光 / 🌗日月 / ☄️流星雨），
+   5×68 + 4×4 间距 = 364px，390px 竖屏装得下。加了第 6 个「🌇 霞」之后
+   实测 6×68 上下 + 5×4 = 428px，比可视的 388px 多出 40px —— 第 6 个被切掉一半。
+   量过每按钮只需瘦 7px，所以把内边距 11px 收到 7px（省 8px/个 × 6 = 48px → 380px），
+   正好装下并留 8px 余量。**只改内边距、不改字号也不动 .wx-seg 的横滚兜底** ——
+   360px 的机器（可视约 358px）还是会差一点，那就照旧横向滚，滚动条提示和滚轮处理器都在。
+   选择器写窄一点（只用 .wx-body > .wx-seg），雷达页 .wx-segs 里那几排不受影响。 */
+@media (max-width:520px){
+  .wx-body > .wx-seg .wx-segbtn{padding:0 7px}
+  /* 名字列从 126 收到 96：那一列最长也就「下次满月」「银河中心」四个字（约 48px），
+     126 在窄屏上纯属浪费。省下的 30px 留给值那一列 —— 行星行现在多了「今夜时段」，
+     不然它会被挤到第三行去。 */
+  .wx-as-row2>b{width:96px}
+  /* 值内子列在窄屏也要收一收 —— 但**不能把 `e` 收过头**。
+     实测：`e` 收到 58px 时「距角 175°」要 58.8px，于是格内折行，
+     「距角」留第一行、`175°` 掉第二行（两位数就没事，所以看起来像"三位数的行星才歪"）。
+     现在按"最长的内容"定宽，而不是按"均分剩下的地方"：
+       m 56（`-4.43 等` 要 54）· a 26（`88°` 要 22）· d 46（`西南偏北` 48→ 实测最长 3 字 36）
+       · e 64（`距角 175°` 要 58.8）
+     合计 192 + 3×8 间距 = 216 ≤ 360 屏值列的 222，四点仍在一行。 */
+  /* ⚠ `d` 要按**最长的方位**定宽：`dirName()` 给的是十六方位，会出现「东南偏南」
+     「东北偏北」这种**四个字**（48px），按三个字定 46px 就会被 nowrap 顶出去。 */
+  .wx-as-cols .wc-m{width:56px}
+  .wx-as-cols .wc-a{width:26px}
+  .wx-as-cols .wc-d{width:48px}
+  .wx-as-cols .wc-e{width:64px}
+}
+
+/* ── 🌊 潮汐（天文第 7 页，2026-10-09）──
+   曲线用**内联 SVG**，不引 ECharts：这一页只有一个 24 小时序列，
+   为了它去初始化一个图表实例（还要处理 resize、主题、销毁）不值当。
+   ⚠ `preserveAspectRatio="none"` + `viewBox` 让曲线随抽屉宽度拉伸 ——
+     代价是**线宽和字号也会跟着横向拉伸**，所以 stroke 用 `vector-effect:
+     non-scaling-stroke` 抵掉，文字则放在 SVG 外面（下面那排刻度也是 SVG 里的，
+     它们只需要"读得清"，轻微拉伸可接受）。 */
+.wx-as-tide{flex:none;display:block;width:100%;height:104px;margin:2px 0 4px;overflow:visible}
+.wx-as-tide-line{fill:none;stroke:var(--accent);stroke-width:1.8;vector-effect:non-scaling-stroke;
+  stroke-linejoin:round;stroke-linecap:round}
+.wx-as-tide-fill{fill:var(--accent);opacity:.12;stroke:none}
+.wx-as-tide-tr{stroke:var(--line2);stroke-width:1;vector-effect:non-scaling-stroke;opacity:.55}
+.wx-as-tide-ax{stroke:var(--dim2);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke;opacity:.8}
+/* ⚠ 曲线里的文字**全部搬到了 HTML**（2026-10-09 使用者截图："图里面的文字被压扁了"）：
+   SVG 用 `preserveAspectRatio="none"` 横向拉伸铺满宽度，里面的字会被一起拉扁；
+   线宽能靠 `vector-effect:non-scaling-stroke` 救，**文字救不了**。
+   所以下面这几条是 **HTML 标签**的样式，不是 SVG `<text>` 的。 */
+.wx-as-tide-wrap{position:relative;flex:none}
+.wx-as-tide-axis{display:flex;justify-content:space-between;font-size:9.5px;color:var(--dim2);
+  font-family:var(--mono);margin-top:-15px;padding:0 2px}
+.wx-as-tide-nowlab{position:absolute;top:1px;transform:translateX(-50%);font-size:9.5px;
+  color:var(--txt-hi);font-family:var(--mono);opacity:.85;white-space:nowrap}
+.wx-as-tide-zerolab{position:absolute;right:2px;transform:translateY(-105%);font-size:9px;
+  color:var(--dim2);font-family:var(--mono);white-space:nowrap}
+.wx-as-tide-now{stroke:var(--txt-hi);stroke-width:1;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.7}
+
+/* 潮汐页那两张表的两格。**判据还是"贴近不变的那一侧"**（见上面 .wc-e / .wc-d2 那两段）：
+   潮位写成 `-0.62 米` / `0.73 米` / `-1.05 米`，不变的是末尾那个「米」和等宽字体的对齐，
+   变的是前面的位数与符号 —— 所以**右对齐 + 定宽**。第一版直接复用了 `.wc-t2`
+   （118px、左对齐，那是「日月」页给 `06:16 → 17:45` 那种时段用的），
+   于是 `-0.62` 与 `0.73` 的左缘随位数漂、右缘的「米」也对不齐 —— 使用者一眼看出来。 */
+.wx-as-cols .wc-tv{width:82px;text-align:right}
+/* 「高平潮 / 低平潮」标签定宽（两个都是三个字，但定下来值列的起点才绝对稳） */
+.wx-as-cols .wc-tl{width:52px}
+/* 「本周最大」那一格**每一行都要占位**（没有标记的行也留空）——
+   跟 `.wc-x` 同一个道理：空格子比省掉更整齐，否则后面那格会左右跳。 */
+.wx-as-cols .wc-tn{width:56px;color:var(--accent)}
+
+/* 时间段的**对齐版**三格（2026-10-09 新规：「时间段……请保证箭头是对齐的，推广到全站」）。
+   左截右对齐、箭头单独一格居中、右截左对齐；三格都定宽 ⇒ 箭头落在同一条竖线上，
+   **与字体是否等宽无关**（真机上 `--mono` 不一定真等宽，`06:20` 与 `05:57` 会漂）。
+   用在「日月」页的今天表和「此刻星空」页的今夜时段。 */
+.wx-as-cols .wc-r1{display:inline-block;width:40px;text-align:right}
+.wx-as-cols .wc-rc{display:inline-block;width:16px;text-align:center;color:var(--dim2)}
+.wx-as-cols .wc-r2{display:inline-block;width:40px;text-align:left}
+/* 同一行里有多个窗口时的分隔符（`a→b · c→d`），跟箭头同色 */
+.wx-as-cols .wc-rs{display:inline-block;width:14px;text-align:center;color:var(--dim2)}
+/* 「/」连接的两个数：**以「/」为基准对齐**（2026-10-09 新规，跟箭头那条同源）。
+   月份右对齐贴着「/」、日子左对齐贴着「/」⇒ `10/9` 与 `10/10` 的斜杠落在同一列。
+   ⚠ 这里用 **px 定宽而不是 `ch`**：用它的地方（潮汐两张表的日期列、霞页标题、
+   流星雨卡片）都是**比例字体**，`ch` 只在等宽字体下才等于一个数字宽。 */
+.wc-dm{display:inline-block;width:15px;text-align:right}
+.wc-ds{display:inline-block;width:7px;text-align:center;color:var(--dim2)}
+.wc-dd{display:inline-block;width:15px;text-align:left}
+/* 两个「月/日」之间的「～」定宽 —— 这样第二个日期的起点也是固定的 */
+.wc-rr{display:inline-block;width:18px;text-align:center;color:var(--dim2)}
+/* ⚠ `display:inline-block` 不是可选的：这三格**有两种用法** ——
+   在「日月」页它们是 `.wx-as-cols` 的直接子元素（flex item，宽度天然生效）；
+   在「此刻星空」页它们嵌在 `.wc-w` 里的 `<span class="nb">` 内部，那里是**行内上下文**，
+   `<i>` 默认 `display:inline` ⇒ `width` 根本不生效（实测箭头左缘在 699.3~702 之间漂 2.7px，
+   正好是比例字体下 `18:28` 与 `03:04` 的数字宽度差）。改成 inline-block 后两处都成立。 */
+
+
+/* ══════════════════ 国际版：全球图层（Leaflet） ══════════════════
+   RainViewer / NASA GIBS 只提供 XYZ 瓦片，ECharts 叠不了，所以这几页用 Leaflet。
+   这里的样式只负责"把瓦片舞台撑满 + 压暗 Leaflet 默认的白色控件"。 */
+.gm-wrap{display:flex;flex-direction:column;height:100%;min-height:0}
+.gm-stage{position:relative;flex:1 1 auto;min-height:0;background:#070a0f;overflow:hidden}
+.gm-map{position:absolute;inset:0;background:#070a0f}
+.gm-badge{
+  position:absolute;left:10px;bottom:10px;z-index:500;
+  padding:3px 9px;border-radius:999px;font-size:11.5px;
+  background:rgba(10,13,19,.78);color:var(--txt);border:1px solid var(--line2);
+  backdrop-filter:blur(4px);pointer-events:none;
+}
+/* Leaflet 的默认控件是白底，放在终端配色里像补丁 */
+.gm-map .leaflet-control-zoom a{
+  background:#12161f;color:var(--txt);border-color:var(--line2);
+}
+.gm-map .leaflet-control-zoom a:hover{background:#1b2130;color:#fff}
+.gm-map .leaflet-control-attribution{
+  background:rgba(10,13,19,.7);color:var(--dim);font-size:10px;
+}
+.gm-map .leaflet-control-attribution a{color:var(--dim)}
+.gm-map .leaflet-popup-content-wrapper,.gm-map .leaflet-popup-tip{
+  background:#12161f;color:var(--txt);border:1px solid var(--line2);box-shadow:none;
+}
+.gm-map .leaflet-popup-content{font-size:12px;margin:7px 10px}
+.gm-map .leaflet-bar{border:none;box-shadow:none}

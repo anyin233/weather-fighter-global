@@ -1,0 +1,522 @@
+/* ═══════════════════════════════════════════════════════════════
+   game.css — 「天气操盘手」小游戏
+   ═══════════════════════════════════════════════════════════════
+   和主站共用 app.css 的色板变量（--up / --down / --accent / --line …），
+   所以 A 股配色反转（body.us）在这里也自动跟着翻。 */
+
+/* 顶栏入口按钮：比其它按钮更花哨一点，让人想点 */
+.btn-game {
+  background: linear-gradient(135deg, #ffb74d, #ff7043);
+  border-color: #ffa726;
+  color: #241a08;
+  font-weight: 700;
+  box-shadow: 0 0 0 0 rgba(255, 167, 38, .55);
+  animation: gg-breath 2.6s ease-in-out infinite;
+}
+.btn-game:hover { filter: brightness(1.12); }
+@keyframes gg-breath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 167, 38, .55); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 167, 38, 0); }
+}
+
+/* ───────── 全屏终端 ─────────
+   这里原来是一个 min(1180px,100%) × min(760px,100%) 的居中对话框。
+   问题出在 1600 宽的屏上：面板只占中间那 ~1170px，四周露出一圈主站，
+   于是看起来就像「只有中间那块是 K 线，主站的曲线根本没被换掉」。
+   —— 那个观感和「进入游戏 = 打开一个交易终端」完全是两回事。
+   现在铺满视口，主站的东西一点都看不见。 */
+.game-mask {
+  position: fixed; inset: 0; z-index: 340;
+  background: #0b0e14;
+  display: flex;
+  padding: 0;
+}
+.game-panel {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--panel, #151820);
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 危险脉冲：权益快见底时整块面板边缘发红 */
+.game-panel.danger  { animation: gg-pulse 1s ease-in-out infinite; }
+.game-panel.danger2 { animation: gg-pulse .42s ease-in-out infinite, gg-shake .28s linear infinite; }
+@keyframes gg-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255, 77, 79, .35); }
+  50%      { box-shadow: inset 0 0 70px 10px rgba(255, 77, 79, .45); }
+}
+@keyframes gg-shake {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(-2px, 1px); }
+  75%      { transform: translate(2px, -1px); }
+}
+
+/* 爆仓红闪 */
+.gg-flash {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 60, 60, .85), rgba(120, 0, 0, .95));
+  animation: gg-flash .9s ease-out forwards;
+}
+@keyframes gg-flash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+
+.gg-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--line, #262b36);
+  background: linear-gradient(180deg, #1b202b, #161a23);
+}
+.gg-head strong { font-size: 14px; letter-spacing: .5px; }
+.gg-sub { font-size: 11.5px; color: var(--dim, #8b919e); }
+.gg-live {
+  margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 9px;
+  background: rgba(43, 214, 160, .14); color: #2bd6a0; border: 1px solid rgba(43, 214, 160, .35);
+}
+.gg-live.off { background: rgba(139,145,158,.14); color: var(--dim, #8b919e); border-color: var(--line, #262b36); }
+.gg-live.hot { background: rgba(255,77,79,.16); color: #ff7b7d; border-color: rgba(255,77,79,.45); }
+
+/* ───────── 终端行情条（学 MT4/MT5 顶栏那一条） ─────────
+   一行里塞：品种 / 周期 / 买卖价 / 点差 / 行情时间 / 连接状态。
+   真交易终端看惯了这一条，没有它会觉得「这不是个交易软件」。 */
+.gg-tbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 5px 12px; border-bottom: 1px solid var(--line, #262b36);
+  background: #10141c; font-size: 11.5px; color: var(--dim, #8b919e);
+  flex: none; overflow-x: auto; white-space: nowrap;
+}
+.gg-tbar .gg-sym { font-size: 14px; font-weight: 700; color: #e6ebf5; letter-spacing: .4px; }
+.gg-tbar .gg-tf {
+  padding: 1px 6px; border: 1px solid var(--line, #262b36); border-radius: 4px;
+  color: #c3cad6; font-weight: 600;
+}
+.gg-tbar .gg-sell { color: #ff7b7d; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gg-tbar .gg-buy  { color: #2bd6a0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gg-tbar .gg-sp   { color: #ffb74d; }
+.gg-tbar .gg-right-side { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+.gg-tbar .gg-dot { color: #2bd6a0; }
+
+/* 现价标签：贴在右侧价格轴上，就是 MT4 那条「当前价」 */
+.gg-last-tag {
+  position: absolute; right: 0; z-index: 4; transform: translateY(-50%);
+  padding: 1px 6px; border-radius: 3px 0 0 3px;
+  font: 700 11px/1.5 'SF Mono', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums; color: #0b0e14; pointer-events: none;
+}
+
+/* 左上角读数（TradingView / MT4 的图例）：悬停时跟着鼠标走 */
+.gg-ohlc {
+  position: absolute; left: 62px; top: 5px; z-index: 4; pointer-events: none;
+  font: 11px/1.5 'SF Mono', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums; color: #b9c2d0; white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+}
+.gg-ohlc em { font-style: normal; color: #6f7b8d; margin-right: 7px; }
+.gg-ohlc b { font-weight: 700; margin: 0 1px 0 2px; }
+.gg-ohlc i {
+  display: inline-block; width: 7px; height: 2px; margin-right: 3px;
+  vertical-align: middle; border-radius: 1px;
+}
+
+/* ───────── 大号下单键（买/卖价直接写在按钮上） ───────── */
+.gg-btns button b { display: block; font-size: 13px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* ───────── 下单预估（名义仓位 / 手续费 / 可承受反向波动） ───────── */
+.gg-calc { margin: 9px 0 2px; border-top: 1px dashed var(--line, #262b36); padding-top: 7px; }
+.gg-calc .gg-crow {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 11.5px; padding: 2px 0; color: var(--dim, #8b919e);
+}
+.gg-calc .gg-crow b {
+  font: 600 11.5px/1.4 'SF Mono', Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; color: #c9cfda;
+}
+/* 「可承受反向波动」是最该被看见的一行：它就是你的爆仓线还剩多远 */
+.gg-calc .gg-crow.gg-key { font-size: 12px; }
+.gg-calc .gg-crow.gg-key b { font-size: 13px; font-weight: 700; }
+.gg-calc .gg-crow.gg-key.gg-danger b { color: #ff7b7d; }
+.gg-calc .gg-crow.gg-key.gg-safe   b { color: #2bd6a0; }
+
+/* ───────── 成交记录 ───────── */
+.gg-fills { max-height: 96px; overflow-y: auto; padding: 0 14px 8px; }
+.gg-fills .gg-empty { font-size: 11.5px; color: var(--dim, #8b919e); padding: 3px 0 6px; }
+.gg-fills .gg-f {
+  display: flex; justify-content: space-between; gap: 6px; align-items: baseline;
+  font-size: 11px; padding: 2px 0; border-bottom: 1px dashed rgba(255, 255, 255, .05);
+  font-variant-numeric: tabular-nums;
+}
+.gg-fills .gg-f span:first-child { color: var(--dim, #8b919e); flex: none; }
+.gg-fills .gg-f span:last-child { font-family: 'SF Mono', Menlo, Consolas, monospace; }
+
+/* ───────── 多维压力表 ─────────
+   六行 = 六个天气维度。每行：名称 / 当前值 / 分位条 / 方向 / 对指数贡献。
+   分位条是这里的重点 —— "31.4℃"玩家没直觉，"近 7 天 88% 分位"立刻能懂
+   （和行情里的 RSI 88 是一回事）。 */
+.gg-press { padding: 2px 14px 8px; }
+.gg-press .gg-pr {
+  display: grid; grid-template-columns: 34px 62px 1fr 14px 54px;
+  gap: 6px; align-items: center; font-size: 11px; padding: 3px 0;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px dashed rgba(255, 255, 255, .05);
+}
+.gg-press .gg-pr > .n { color: var(--dim, #8b919e); }
+.gg-press .gg-pr > .v { font-family: 'SF Mono', Menlo, Consolas, monospace; }
+.gg-press .gg-pr > .v i { font-style: normal; color: var(--dim, #8b919e); font-size: 9.5px; margin-left: 1px; }
+/* 分位条：一条 0~100% 的底槽 + 当前位置的填充 + 50% 处的中位刻度 */
+.gg-press .gg-bar {
+  position: relative; height: 5px; border-radius: 3px;
+  background: rgba(255, 255, 255, .07); overflow: hidden;
+}
+.gg-press .gg-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.gg-press .gg-bar::after {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+  background: rgba(255, 255, 255, .22);
+}
+.gg-press .gg-pr > .d { text-align: center; font-size: 10px; }
+.gg-press .gg-pr > .c { text-align: right; font-family: 'SF Mono', Menlo, Consolas, monospace; }
+.gg-press .gg-pr.sum { border-bottom: none; margin-top: 2px; padding-top: 5px; border-top: 1px solid rgba(255, 255, 255, .10); }
+.gg-press .gg-pr.sum > .n { grid-column: 1 / 5; }
+.gg-press .gg-pr.sum > .c { grid-column: 5; }
+
+/* ───────── 挂单 ───────── */
+.gg-ord-in { display: flex; gap: 8px; padding: 6px 14px 0; }
+.gg-inp {
+  flex: 1; min-width: 0; background: #12161f; color: var(--fg, #e6e9ef);
+  border: 1px solid var(--line, #262b36); border-radius: 7px;
+  padding: 7px 9px; font-size: 12.5px; font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.gg-inp::placeholder { color: #5b6270; font-family: inherit; }
+.gg-inp:focus { outline: none; border-color: var(--accent, #ffb74d); }
+.gg-inp::-webkit-outer-spin-button, .gg-inp::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.gg-inp { -moz-appearance: textfield; appearance: textfield; }
+#ggOrdBuy, #ggOrdSell { padding: 6px 4px; font-size: 12px; }
+#ggSetSl, #ggSetTp { padding: 5px 4px; font-size: 11px; color: var(--dim, #8b919e); }
+
+.gg-fills .gg-o {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 11px; padding: 3px 0; border-bottom: 1px dashed rgba(255, 255, 255, .05);
+  font-variant-numeric: tabular-nums;
+}
+.gg-fills .gg-o span { font-family: 'SF Mono', Menlo, Consolas, monospace; }
+.gg-fills .gg-o span:first-child { flex: none; min-width: 46px; }
+.gg-fills .gg-o span.dim { color: var(--dim, #8b919e); margin-left: auto; }
+.gg-fills .gg-o .gg-x {
+  flex: none; width: 18px; height: 18px; line-height: 1; padding: 0;
+  background: none; border: 0; color: #5b6270; font-size: 15px; cursor: pointer; border-radius: 4px;
+}
+.gg-fills .gg-o .gg-x:hover { color: #ff7b7d; background: rgba(255, 77, 79, .12); }
+
+/* ───────── 天气日历 ───────── */
+.gg-cal { max-height: 96px; overflow-y: auto; padding: 0 14px 8px; }
+.gg-cal .gg-empty { font-size: 11.5px; color: var(--dim, #8b919e); padding: 3px 0 6px; }
+.gg-cal .gg-c {
+  display: flex; align-items: baseline; gap: 7px; font-size: 11px; padding: 3px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, .05); font-variant-numeric: tabular-nums;
+}
+.gg-cal .gg-c span { color: var(--dim, #8b919e); flex: none; min-width: 84px; }
+.gg-cal .gg-c i { font-style: normal; letter-spacing: -1px; color: #ffb74d; font-size: 10px; }
+.gg-cal .gg-c i.t1 { opacity: .5; }
+.gg-cal .gg-c i.t2 { opacity: .7; }
+.gg-cal .gg-c i.t4 { color: #ff7b7d; }
+.gg-cal .gg-c b { margin-left: auto; font-weight: 700; color: #cdd3dd; }
+
+.gg-body { flex: 1; display: flex; min-height: 0; }
+.gg-left  { flex: 1; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line, #262b36); }
+.gg-right { width: 322px; flex: none; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+
+.gg-chart { flex: 1; min-height: 0; }
+/* 包一层是为了给「现价标签」一个定位父级（它要贴在右侧价格轴上） */
+.gg-chartwrap { flex: 1; min-height: 0; position: relative; display: flex; }
+.gg-chartwrap .gg-chart { flex: 1; min-width: 0; }
+.gg-eq { flex: none; height: 148px; border-top: 1px solid var(--line, #262b36); display: flex; flex-direction: column; }
+.gg-eq-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 12px 0; font-size: 11.5px; color: var(--dim, #8b919e);
+}
+.gg-chart-sm { flex: 1; min-height: 0; height: auto; }
+
+/* ───────── 右上：权益大数字 ───────── */
+.gg-equity {
+  padding: 14px 14px 10px; border-bottom: 1px solid var(--line, #262b36);
+  text-align: right;
+}
+.gg-eq-big {
+  font: 700 34px/1.05 'SF Mono', Menlo, Consolas, monospace;
+  letter-spacing: -1px; font-variant-numeric: tabular-nums;
+  transition: color .12s;
+}
+.gg-eq-chg { font: 600 13px/1.6 'SF Mono', Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.gg-eq-tag {
+  display: block; text-align: right; font-size: 11px; color: var(--dim, #8b919e); padding-top: 4px;
+}
+/* 数字跳一下 */
+.gg-pop { animation: gg-pop .22s ease-out; }
+@keyframes gg-pop { 0% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+/* ───────── 账户明细 ───────── */
+.gg-stat { margin: 0; padding: 6px 14px 8px; border-bottom: 1px solid var(--line, #262b36); }
+.gg-stat .gg-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; padding: 2.5px 0;
+}
+.gg-stat .gg-row span:first-child { color: var(--dim, #8b919e); }
+.gg-stat .gg-row span:last-child {
+  font: 600 12px/1.4 'SF Mono', Menlo, Consolas, monospace; font-variant-numeric: tabular-nums;
+}
+.gg-warn-row span:last-child { color: #ff7b7d; }
+.gg-hr { height: 1px; background: var(--line, #262b36); margin: 5px 0; }
+
+/* ───────── 下单区 ───────── */
+.gg-trade { padding: 12px 14px 16px; }
+.gg-lab {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11.5px; color: var(--dim, #8b919e); margin-bottom: 5px;
+}
+.gg-lab b { color: var(--fg, #e6e9ef); font-weight: 700; }
+
+.gg-size-btns { display: flex; gap: 6px; margin-bottom: 8px; }
+.gg-size-btns button {
+  flex: 1; padding: 6px 0; font-size: 11.5px; cursor: pointer;
+  background: #212734; color: var(--fg, #e6e9ef);
+  border: 1px solid var(--line, #262b36); border-radius: 6px;
+  font-family: inherit;
+}
+.gg-size-btns button:hover { border-color: var(--accent, #ffb74d); }
+.gg-size-btns button.on { background: var(--accent, #ffb74d); color: #241a08; border-color: var(--accent, #ffb74d); font-weight: 700; }
+
+.gg-btns { display: flex; gap: 8px; margin-bottom: 9px; }
+.gg-btns button {
+  flex: 1; padding: 11px 0; border-radius: 8px; cursor: pointer;
+  font: 700 15px/1 inherit; border: 1px solid transparent; color: #fff;
+}
+.gg-long  { background: #c62828; } .gg-long:hover  { background: #e53935; }
+.gg-short { background: #1b7f5a; } .gg-short:hover { background: #22a06f; }
+.gg-btns button:disabled { opacity: .38; cursor: not-allowed; }
+.gg-grid2 { display: flex; gap: 8px; }
+.gg-grid2 button {
+  flex: 1; padding: 7px 0; font-size: 12px; cursor: pointer; font-family: inherit;
+  background: #232936; color: var(--fg, #e6e9ef);
+  border: 1px solid var(--line, #262b36); border-radius: 6px;
+}
+.gg-grid2 button:hover { border-color: var(--accent, #ffb74d); }
+.gg-grid2 button:disabled { opacity: .35; cursor: not-allowed; }
+
+.gg-seg { display: flex; gap: 4px; margin-bottom: 9px; }
+.gg-seg button {
+  flex: 1; padding: 5px 0; font: 600 11.5px/1.2 inherit; cursor: pointer;
+  background: #1d232f; color: var(--dim, #8b919e);
+  border: 1px solid var(--line, #262b36); border-radius: 5px;
+}
+.gg-seg button.on { background: #2b3345; color: var(--fg, #e6e9ef); border-color: #3d4761; }
+.gg-seg button.lev-danger.on { background: #4a1f22; color: #ff9a9b; border-color: #7a2b2e; }
+
+/* 杠杆有 6 档（1/5/10/20/50/100 倍），一行塞不下 —— 排成 3 列 2 行，
+   "100× 久留美" 这种长文案才不会把按钮挤成两个字一行。 */
+#ggLev { flex-wrap: wrap; }
+#ggLev button { flex: 1 1 calc(33.333% - 3px); }
+
+/* K 线周期是 7 档（1/5/15/30/60/240/1440 分钟 = 1分/5分/15分/30分/1时/4时/1日），
+   排 4 列 2 行（第二行三个自动撑满）。字都很短，所以字号压小、内边距收紧。 */
+#ggBar { flex-wrap: wrap; }
+#ggBar button { flex: 1 1 calc(25% - 3px); font-size: 11px; padding: 5px 0; }
+/* 下面那行小字说明"这档是真数据还是插值" —— 两行以内，别把右栏顶下去 */
+.gg-bartip {
+  font-size: 10.5px; color: var(--dim, #8b919e); line-height: 1.5;
+  margin: -3px 0 9px; padding: 6px 8px;
+  background: #171c26; border: 1px solid var(--line, #262b36); border-radius: 5px;
+}
+.gg-bartip b { color: #ffb74d; }
+.gg-bartip u { text-decoration: none; border-bottom: 1px dashed #6b7486; }
+
+.gg-hint { font-size: 11px; color: var(--dim, #8b919e); line-height: 1.55; margin-top: 9px; }
+.gg-hint b { color: #ffb74d; }
+.gg-hint code {
+  font: 11px/1 'SF Mono', Menlo, monospace; background: #1e2430;
+  padding: 1px 4px; border-radius: 3px; color: #ffd28a;
+}
+
+/* ───────── 天气闪报 ───────── */
+/* 打雷 / 对流爆发 / 大风时从面板顶上滑下来的一条横幅，数值都是当根 K 线的真值 */
+.gg-news {
+  position: absolute; left: 50%; top: 62px; z-index: 7;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 18px; border-radius: 8px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(58, 34, 12, .96), rgba(34, 22, 10, .96));
+  border: 1px solid rgba(255, 183, 77, .45);
+  box-shadow: 0 6px 26px rgba(0, 0, 0, .55), 0 0 22px rgba(255, 183, 77, .18);
+  animation: gg-news 2.2s ease-out forwards;
+}
+.gg-news b { font-size: 15px; color: #ffd28a; letter-spacing: .5px; }
+.gg-news span { font: 600 12px/1 'SF Mono', Menlo, monospace; color: #c8cdd8; }
+@keyframes gg-news {
+  0%   { opacity: 0; transform: translate(-50%, -14px) scale(.94); }
+  9%   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  78%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -8px) scale(.98); }
+}
+
+/* ───────── 结算 / 开场遮罩 ─────────
+   ⚠ 居中**不能用 `align-items:center`**：
+   卡片比容器高的时候，flex 居中会让它上下各溢出一半，而溢出的上半截在
+   `overflow-y:auto` 的滚动区**之外**（滚动只能往下走）—— 于是卡片顶端永远看不到。
+   手机竖屏上开场卡本来就比屏幕高，用户报的"开场卡片顶端被吞了"就是这个。
+   改法：容器 `align-items:flex-start`，卡片自己 `margin:auto` ——
+   卡片矮的时候上下 auto 把它居中，卡片高的时候从顶端开始、整张都能滚到。 */
+.gg-cover {
+  position: absolute; inset: 0; z-index: 6;
+  background: rgba(8, 10, 15, .93);
+  display: flex; align-items: flex-start; justify-content: center; padding: 20px;
+  overflow-y: auto;
+}
+.gg-card {
+  width: min(560px, 100%); text-align: center;
+  border: 1px solid var(--line, #262b36); border-radius: 12px;
+  background: #141821; padding: 26px 26px 22px;
+  margin: auto;
+}
+.gg-card h2 { margin: 0 0 4px; font-size: 30px; letter-spacing: 6px; }
+.gg-card h2.win  { color: #2bd6a0; text-shadow: 0 0 26px rgba(43, 214, 160, .5); }
+.gg-card h2.lose { color: #ff4d4f; text-shadow: 0 0 26px rgba(255, 77, 79, .55); }
+.gg-card .gg-grade { font: 700 46px/1 'SF Mono', Menlo, monospace; color: var(--accent, #ffb74d); margin: 10px 0 6px; }
+.gg-card p { font-size: 13px; line-height: 1.75; color: #c8cdd8; margin: 7px 0; }
+.gg-card .gg-final { font: 700 26px/1.3 'SF Mono', Menlo, monospace; font-variant-numeric: tabular-nums; margin: 10px 0; }
+.gg-card .gg-tbl { text-align: left; margin: 14px 0; }
+.gg-card .gg-tbl .gg-row {
+  display: flex; justify-content: space-between; font-size: 12.5px; padding: 3.5px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, .07);
+}
+.gg-card .gg-tbl .gg-row span:first-child { color: var(--dim, #8b919e); }
+.gg-card .gg-tbl .gg-row span:last-child { font-family: 'SF Mono', Menlo, monospace; }
+.gg-card .gg-btns { margin-top: 16px; }
+.gg-card .gg-btns button { padding: 12px 0; }
+
+/* 结局的"收场白" —— **每一档都有**（2026-10-10 起，语气是欠揍雌小鬼那味）。
+   和上面那条 .dim 评语隔开一道虚线，让它是"最后一句"。
+   颜色按结果分三档：F/E 红（输了）、D/C 中性（不痛不痒）、B 以上金（赢了）。 */
+.gg-card .gg-finale {
+  margin: 10px 0 2px; padding-top: 9px; font-size: 13px; line-height: 1.7;
+  border-top: 1px dashed var(--line, #262b36);
+}
+.gg-card .gg-finale.bad  { color: #ff8f91; }
+.gg-card .gg-finale.mid  { color: #a8b3c4; }
+.gg-card .gg-finale.good { color: #ffd666; }
+
+/* 开场说明里的规则条目 */
+.gg-rules { text-align: left; font-size: 12.5px; line-height: 1.85; color: #c8cdd8; margin: 14px 0; }
+.gg-rules li { margin: 3px 0; }
+.gg-rules b { color: #ffb74d; }
+.gg-rules code {
+  font: 12px/1 'SF Mono', Menlo, monospace; background: #1e2430;
+  padding: 1px 5px; border-radius: 4px; color: #ffd28a;
+}
+
+/* ───────── 新手入门（游戏顶栏的「？」） ─────────
+   和网站的术语表一个意思：玩这个游戏的人不一定懂炒股，
+   所以"怎么看图、怎么下单"要在游戏里就地讲一遍，不用去别处找。 */
+.gg-card.guide { max-height: 88vh; display: flex; flex-direction: column; text-align: left; }
+.gg-card.guide h2 { text-align: center; font-size: 19px; letter-spacing: 1px; margin-bottom: 10px; }
+.gg-guide { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+.gg-guide h5 {
+  margin: 15px 0 6px; font-size: 12.5px; letter-spacing: .5px;
+  color: var(--accent, #ffb74d); border-bottom: 1px dashed rgba(255, 255, 255, .1); padding-bottom: 4px;
+}
+.gg-guide h5:first-child { margin-top: 0; }
+.gg-guide dl { margin: 0; }
+.gg-guide dt { font-size: 12.5px; font-weight: 600; color: #dfe4ee; margin-top: 8px; }
+.gg-guide dd { margin: 2px 0 0; font-size: 12.5px; line-height: 1.72; color: #aeb6c4; }
+.gg-guide b { color: #ffb74d; font-weight: 600; }
+.gg-guide ol { margin: 4px 0 0; padding-left: 19px; font-size: 12.5px; line-height: 1.75; color: #aeb6c4; }
+.gg-guide ol li { margin: 4px 0; }
+.gg-guide code {
+  font: 11.5px/1 'SF Mono', Menlo, monospace; background: #1e2430;
+  padding: 1px 5px; border-radius: 4px; color: #ffd28a;
+}
+.gg-guide-warn {
+  margin: 12px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.7;
+  color: #d8c9a8; background: #1d1a12; border: 1px solid #4a4026; border-radius: 6px;
+}
+
+/* 开场卡片里的本金选择器 */
+.gg-cash { text-align: left; margin: 14px 0; padding: 11px 12px; border: 1px solid var(--line, #262b36); border-radius: 9px; background: #14181f; }
+.gg-cash-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
+.gg-cash-head span { font-size: 12.5px; color: var(--dim, #8b919e); }
+.gg-cash-head b { font: 700 17px/1 'SF Mono', Menlo, monospace; color: #ffb74d; font-variant-numeric: tabular-nums; }
+.gg-cash-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.gg-cash-row .gg-cbtn {
+  flex: 1 1 0; min-width: 62px; padding: 7px 4px; font-size: 12px; cursor: pointer;
+  background: #1d232f; color: #c8cdd8; border: 1px solid var(--line, #262b36); border-radius: 7px;
+  font-variant-numeric: tabular-nums; transition: background .12s, color .12s, border-color .12s;
+}
+.gg-cash-row .gg-cbtn:hover { background: #232a37; color: #e6e9ef; }
+.gg-cash-row .gg-cbtn.on { background: #3a2c14; color: #ffb74d; border-color: #8a6320; font-weight: 700; }
+.gg-cash-row .gg-inp { flex: 1 1 120px; min-width: 108px; }
+.gg-cash-tip { font-size: 11.5px !important; line-height: 1.7 !important; color: #8b919e !important; margin: 9px 0 0 !important; }
+.gg-cash-tip b { color: #ffb74d; }
+
+/* 爆仓/盈利时的飘字 */
+.gg-float {
+  position: absolute; z-index: 7; pointer-events: none;
+  font: 700 15px/1 'SF Mono', Menlo, monospace; white-space: nowrap;
+  animation: gg-float 1.05s ease-out forwards;
+}
+@keyframes gg-float {
+  0%   { opacity: 0; transform: translateY(6px) scale(.9); }
+  18%  { opacity: 1; transform: translateY(0) scale(1.05); }
+  100% { opacity: 0; transform: translateY(-40px) scale(1); }
+}
+
+/* ───────── 手机竖屏 ───────── */
+/* 手机上原来的做法是让 .gg-body 整块竖着滚 —— 结果就是"看图"和"操作"只能二选一：
+   往下滚到下单区，图已经滚出屏幕了。现在改成**图表钉在顶部、右侧控件区自己滚**：
+   主图占屏幕上方约 38vh，无论你滚到哪一步，图一直在那儿。 */
+@media (max-width: 860px) {
+  .game-mask { padding: 0; }
+  .game-panel { width: 100%; height: 100%; border-radius: 0; border: 0; }
+  .gg-body { flex-direction: column; overflow: hidden; }
+  .gg-left { border-right: 0; flex: none; }
+  .gg-chart { height: 36vh; min-height: 168px; flex: none; }
+  /* 权益曲线压薄（不压没，它还是判断"要不要加仓"最快的那个数）。
+     别压到 104px 以下 —— 左边那串 30 万 / 25 万 / 20 万 刻度会互相压在一起看不清。 */
+  .gg-eq { height: 124px; flex: none; }
+  /* #ggEqChart 同时挂着 .gg-chart 和 .gg-chart-sm，上面那条 38vh 会盖掉 .gg-eq 的 88px，
+     于是权益图画布比容器高、压到右边的账户明细上。这里把嵌套那张还给自己的容器。 */
+  .gg-chart-sm { height: auto; flex: 1; min-height: 0; }
+  /* 控件区是唯一的滚动容器。下面留 84px，因为做多/做空那排按钮是固定在屏幕底部的 */
+  .gg-right { width: 100%; flex: 1 1 auto; min-height: 0; overflow-y: auto;
+              padding-bottom: 84px;
+              border-top: 1px solid var(--line, #262b36); -webkit-overflow-scrolling: touch; }
+  .gg-eq-big { font-size: 28px; }
+  .gg-head strong { font-size: 13px; }
+  .gg-sub { display: none; }
+  /* 账户明细挤成两列 —— 它有 8 行，不压的话下单键要被顶到很远 */
+  .gg-stat { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .gg-stat .gg-row { font-size: 11.5px; }
+  .gg-stat .gg-hr { grid-column: 1 / -1; }
+  /* 做多 / 做空常驻屏幕底部：滚控件区的时候手不用来回找按钮。
+     用 fixed 而不是 sticky —— .gg-btns 的父级 .gg-trade 只包了"下单区"这一段，
+     sticky 一旦滚出父级盒子就会被带着一起滚走（实测滚到底时按钮跑到屏幕顶上去了）。
+     ⚠ 选择器必须写 `.gg-trade > .gg-btns`：封面卡里的"开始操盘 / 算了"也是 .gg-btns，
+       写成 .gg-btns 会把封面卡的两个按钮也钉到屏幕底下去。 */
+  .gg-trade > .gg-btns {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
+    margin: 0; padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--panel, #12151c); border-top: 1px solid var(--line, #262b36);
+  }
+  /* 卡片（开场 / 选择 / 结算 / 新手入门）盖在最上面时，把那排常驻的下单键收起来 ——
+     它们 z-index 12 且钉在底部，不收的话会正好压在卡片自己的按钮上（用户报过这个）。
+     cover-on 由 game.js 的 showCover/hideCover 同步。 */
+  .game-mask.cover-on .gg-trade > .gg-btns { display: none; }
+  /* 新手入门在窄屏上占满整屏（正文长，卡片形式会挤成一条缝） */
+  .gg-card.guide { max-height: 100%; height: 100%; border-radius: 0; border: 0; padding: 16px 15px 12px; }
+  /* 内容不要被那排常驻按钮盖住（.gg-right 已经在上面留了 padding-bottom） */
+  /* 窄屏放不下开高低收 + 两条均线，只留最有用的几个数 */
+  .gg-ohlc { left: 60px; top: 3px; font-size: 10px; }
+  .gg-ohlc em, .gg-ohlc .gg-ma20 { display: none; }
+  .gg-last-tag { font-size: 10px; padding: 0 4px; }
+  /* 本金选择器：窄屏下预设挤成两行、自定义输入独占一行 */
+  .gg-cash { padding: 10px; margin: 11px 0; }
+  .gg-cash-row .gg-cbtn { flex: 1 1 calc(33.333% - 4px); min-width: 0; padding: 8px 2px; font-size: 11.5px; }
+  .gg-cash-row .gg-inp { flex: 1 1 100%; }
+  .gg-cash-tip { font-size: 11px !important; }
+}

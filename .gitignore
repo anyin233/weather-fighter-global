@@ -1,0 +1,11 @@
+# 构建脚本的下载缓存（GeoNames / Wikidata），不进仓库
+tools/.cache/
+
+# 本地调试产物
+.DS_Store
+__pycache__/
+*.pyc
+web/dist/
+
+# 源码里没有安装包，只有 Actions 部署时才需要
+dist/
