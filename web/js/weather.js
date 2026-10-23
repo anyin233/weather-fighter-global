@@ -783,7 +783,7 @@
         const d = await jget('data/intl/storms.json', 900000, 'nhcstorms');
         (d && d.storms || []).forEach(x => out.push({
           id: 'nhc_' + x.id, en: x.name, cn: x.name, no: x.bin || '',
-          num: x.bin || '', meaning: 'NHC · 美国国家飓风中心', live: true, intl: true
+          num: x.bin || '', meaning: '', live: true, intl: true
         }));
       } catch (e) { /* 没生成过静态文件 */ }
       return out;
@@ -823,13 +823,14 @@
       const DIR16 = ['北', '北东北', '东北', '东东北', '东', '东东南', '东南', '南东南',
                      '南', '南西南', '西南', '西西南', '西', '西西北', '西北', '北西北'];
       return {
-        id: x.id, en: x.name, cn: x.name, no: x.bin || '', meaning: 'NHC · 美国国家飓风中心',
+        id: x.id, en: x.name, cn: x.name, no: x.bin || '', meaning: '',
         live: true, intl: true,
         pts: [{
           t: stamp, lon: x.lon, lat: x.lat, cat: CAT[x.cls] || 'TS',
           pres: x.pres || null,
           wind: x.wind ? Math.round(x.wind * 0.514444 * 10) / 10 : null,   // knots -> m/s
-          moveDir: (x.dir == null || !isFinite(x.dir)) ? '' : DIR16[Math.round(((x.dir % 360) + 360) % 360 / 22.5) % 16] + '风',
+          // 「移向」不是「风向」：这里不能加 "风" 字（NMC 的 moveDir 也是纯方位）。
+          moveDir: (x.dir == null || !isFinite(x.dir)) ? '' : DIR16[Math.round(((x.dir % 360) + 360) % 360 / 22.5) % 16],
           moveSpd: x.spd == null ? null : Math.round(x.spd * 1.852),        // knots -> km/h
           radii: [], fcst: [], issue: x.t
         }]
