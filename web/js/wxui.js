@@ -753,7 +753,7 @@
       let list;
       try { list = await W.typhoonList(); }
       catch (e) { body.innerHTML = '<div class="wx-load">台风数据获取失败：' + esc(e.message) + '</div>'; return; }
-      if (!list.length) { body.innerHTML = '<div class="wx-load">今年还没有编号台风</div>'; return; }
+      if (!list.length) { body.innerHTML = '<div class="wx-load">当前没有活跃的热带气旋</div>'; return; }
       const live = list.filter(t => t.live);
       const show = (live.length ? live : list.slice(0, 6));
       const pick = (this._ty && show.some(t => t.id === this._ty)) ? this._ty : show[0].id;
@@ -787,8 +787,15 @@
       const hasLL = !!(c && isFinite(c.lat) && isFinite(c.lon));
       if (hasLL) {
         ws.forEach(w => {
-          w.d = (w.lat != null && w.lon != null && isFinite(w.lat) && isFinite(w.lon))
-            ? qkDist(c.lat, c.lon, w.lat, w.lon) : Infinity;
+          if (w.lat != null && w.lon != null && isFinite(w.lat) && isFinite(w.lon)) {
+            w.d = qkDist(c.lat, c.lon, w.lat, w.lon);
+          } else if (w.nocoordOK && w.ctry && c.country && w.ctry === c.country) {
+            // MeteoAlarm 只给区域名、不给坐标。同国家的预警对本地人比
+            // 几千公里外的 GDACS 更相关，所以排在"本地"一档（距离记 0）。
+            w.d = 0;
+          } else {
+            w.d = Infinity;
+          }
         });
         ws.sort((x, y) => x.d - y.d);
       }
@@ -800,7 +807,7 @@
         else {
           const near = ws.find(w => isFinite(w.d));
           sub.textContent = (c && c.intl ? '全球生效中 ' : '全国生效中 ') + n + ' 条 · 按离 ' + (c.name || '当前城市') + ' 的距离排序'
-            + (near ? '（最近 ' + Math.round(near.d) + ' 公里）' : '');
+            + (near && near.d > 1 ? '（最近 ' + Math.round(near.d) + ' 公里）' : '（本地/同国家预警优先）');
         }
       }
       if (!ws.length) { body.innerHTML = '<div class="wx-load">当前全国没有生效中的预警信号</div>'; return; }
