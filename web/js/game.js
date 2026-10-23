@@ -693,8 +693,21 @@
     return (1.4826 * median(d)) || 1;
   }
 
-  /** 当地"现在"的 'YYYY-MM-DDTHH:MM'，用来切出预报段 */
-  function nowLocalStr() {
+  /** 城市当地"现在"的 'YYYY-MM-DDTHH:MM'，用来切出预报段。
+   *  ⚠ 必须按**城市**时区，不能用浏览器本地：人在北京看纽约，浏览器"现在"是
+   *  05:30，而 mn.time 是纽约墙钟 17:30 —— 直接比会把整段历史都当成"未来"。 */
+  function nowLocalStr(tz) {
+    if (tz) {
+      try {
+        const p = new Intl.DateTimeFormat('en-CA', {
+          timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        }).formatToParts(new Date());
+        const g = k => (p.find(x => x.type === k) || {}).value || '00';
+        return g('year') + '-' + g('month') + '-' + g('day') + 'T' +
+          (g('hour') === '24' ? '00' : g('hour')) + ':' + g('minute');
+      } catch (e) { /* 时区名不合法就退回浏览器本地 */ }
+    }
     const d = new Date();
     const u = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
     return u.toISOString().slice(0, 16);
@@ -1079,7 +1092,7 @@
     if (!mn || !mn.time || !mn.time.length) return null;
     const dbgComp = [];                       // 只在 DBG_COMP 为真时被填（标定用）
     const n = mn.time.length;
-    let i0 = mn.time.findIndex(t => t >= nowLocalStr());
+    let i0 = mn.time.findIndex(t => t >= nowLocalStr(city && city.tz));
     if (i0 < 0) i0 = n;
     // 只用"现在"之前的：预报段不能拿来当已发生的行情
     const end = Math.max(2, Math.min(n, i0));
@@ -1111,7 +1124,7 @@
     const cf = comfort(mn, airRaw);
     const sev = severity(mn, airRaw);
     const tr = ema(sev, P.EMA_A);
-    const now = nowLocalStr();
+    const now = nowLocalStr(city && city.tz);
 
     // ── 区域大盘：同一个时间轴（两边都是 past_days=92 & 同一时区），按时间串对齐 ──
     let regSev = null, regTr = null, regMap = null;
@@ -1147,7 +1160,12 @@
     // 定位根号一律用**时间差**（barT0 与事件时刻都用同一个 Date.parse 口径），
     // 所以浏览器把 mn.time 当本地时间还是 UTC 解释都不影响结果。
     const BAR_MS = 900000;
-    const barT0 = mn.time.length ? Date.parse(mn.time[0]) : 0;
+    // mn.time 是城市当地墙钟串；按城市 UTC 偏移折算成真实 epoch，事件时刻
+    //（地震/台风/预报偏离都是绝对时刻）才能落到正确的那根 K 线上。
+    const barOffMs = (mn.utcOffset || 0) * 1000;
+    const barT0 = mn.time.length
+      ? (Date.parse(mn.time[0].length === 16 ? mn.time[0] + ':00Z' : mn.time[0]) - barOffMs)
+      : 0;
     const idxOf = t => (barT0 && t) ? Math.round((t - barT0) / BAR_MS) : -1;
 
     /* ① 空气质量：已经在上面 comfort() 之前对齐好了（airRaw）。

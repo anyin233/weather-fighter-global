@@ -1122,7 +1122,8 @@
             precip: (m.precipitation || []).map(v => v || 0),
             wcode: m.weather_code || [],
             cape: m.cape || [],
-            dew: m.dew_point_2m || []
+            dew: m.dew_point_2m || [],
+            utcOffset: d.utc_offset_seconds
           };
           pcSet('min', key, out);
           return out;
@@ -1201,7 +1202,8 @@
           // 逐个时刻、逐个变量求平均，缺测的坐标跳过（不拿 0 去拉低平均）
           const VARS = { temp: 'temperature_2m', gust: 'wind_gusts_10m', precip: 'precipitation',
                          wcode: 'weather_code', cape: 'cape', dew: 'dew_point_2m' };
-          const out = { time: t, cities: pick.map(c => c.name), scope: scope };
+          const out = { time: t, cities: pick.map(c => c.name), scope: scope,
+                        utcOffset: arr[0] && arr[0].utc_offset_seconds };
           for (const alias in VARS) {
             const src = VARS[alias];
             const col = new Array(t.length);
