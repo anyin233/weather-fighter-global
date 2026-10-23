@@ -15,7 +15,9 @@
 
 ## 在线地址
 
-部署在 GitHub Pages：`https://<你的账号>.github.io/weather-fighter-global/`
+部署在 GitHub Pages：<https://blog.12th.day/weather-fighter-global/>
+（`https://anyin233.github.io/weather-fighter-global/` 会 301 到同一个站点，
+因为账号配了自定义域名 `blog.12th.day`。）
 
 ## 城市目录
 

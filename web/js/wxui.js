@@ -1395,6 +1395,7 @@
     const s = String(t);
     if (w && w.lvl === 3) return '#e74c3c';
     if (w && w.lvl === 2) return '#e67e22';
+    if (w && w.lvl === 1) return '#f0c419';
     if (/红色|Red|Extreme|Tornado Warning|Hurricane Warning|Typhoon Warning|Tsunami/i.test(s)) return '#e74c3c';
     if (/橙色|Orange|Severe/i.test(s)) return '#e67e22';
     if (/黄色|Yellow|Moderate/i.test(s)) return '#f0c419';
@@ -2658,7 +2659,7 @@
           }
           if (d._p) {
             const a = d._p;
-            return a.t.replace(/(\d{4})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:00') + '<br/>' +
+            return a.t.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:$5') + '<br/>' +
               '位置 ' + lonTxt(a.lon) + ', ' + latTxt(a.lat) + '<br/>' +
               '中心气压 ' + (a.pres == null ? '--' : a.pres) + ' hPa<br/>' +
               '最大风速 ' + (a.wind == null ? '--' : a.wind) + ' m/s<br/>' +
@@ -2708,7 +2709,7 @@
         row('中心气压', (last.pres == null ? '--' : last.pres) + ' hPa') +
         row('最大风速', (last.wind == null ? '--' : last.wind) + ' m/s（' + windScale(last.wind) + '）') +
         row('移向移速', (last.moveDir || '--') + (last.moveSpd == null ? '' : ' ' + last.moveSpd + ' km/h')) +
-        row('最新时次', last.t.replace(/(\d{4})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:00') + (ty.intl ? ' UTC' : '')) +
+        row('最新时次', last.t.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:$5') + (ty.intl ? ' UTC' : '')) +
         (fc.length ? row('中央气象台预报', '未来 ' + fc[fc.length - 1].h + ' 小时') : '') +
         (ty.intl ? row('数据来源', 'NHC（美国国家飓风中心）· 仅当前定位') : '') +
         '</div>';
