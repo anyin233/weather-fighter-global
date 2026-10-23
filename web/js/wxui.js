@@ -1393,7 +1393,7 @@
   }
   function warnColor(t, w) {
     const s = String(t);
-    if (w && w.lvl === 3) return '#e74c3c';
+    if (w && w.lvl >= 3) return '#e74c3c';
     if (w && w.lvl === 2) return '#e67e22';
     if (w && w.lvl === 1) return '#f0c419';
     if (/红色|Red|Extreme|Tornado Warning|Hurricane Warning|Typhoon Warning|Tsunami/i.test(s)) return '#e74c3c';

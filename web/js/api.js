@@ -210,8 +210,12 @@
       this.hot = (d.hot || []).map(k => this.byId[k] || this.byName[k]).filter(Boolean);
       if (!this.hot.length) this.hot = this.all.slice(0, 20);
       this.updated = d.updated;
-      await this.loadPlaces();          // 拿不到也不影响主目录
-      await this.loadWorld();           // 同上：国际目录挂了，中国部分照常可用
+      // 两个目录互不依赖，并发拉：places 222 KB + world 630 KB，
+      // 串行等于把首屏等待叠成两份。
+      await Promise.all([
+        this.loadPlaces(),          // 拿不到也不影响主目录
+        this.loadWorld()            // 同上：国际目录挂了，中国部分照常可用
+      ]);
       return this;
     },
     /** 省 / 地级市 / 区县三级地名目录（带中心点经纬度）。

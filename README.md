@@ -27,6 +27,10 @@
 - Wikidata：简体中文名（按 GeoNames ID `P1566` 精确匹配）
 - 筛选口径：人口 ≥ 10 万 **或** 首都，排除中国（中国走 `cities.json` / `places.json`）
 - 共 **5,657** 座，搜索支持中文名、英文名、拼音（如 `niuyue`）、GeoNames id
+- 数据许可：GeoNames CC BY 4.0、Wikidata CC0
+
+> 改完 `world-cities.json` 之后，记得把 `web/js/api.js` 里请求 URL 的 `v=1`
+> 加一（`data/world-cities.json?ts=...&v=1`），否则老访客会继续用浏览器缓存里的旧目录。
 
 重新生成（需要联网；结果已提交，日常不需要跑）：
 
